@@ -19,7 +19,7 @@ const navItems = [
 
 export function AppShell({ auth }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-slate-50/80 text-slate-900 dark:bg-slate-950/90">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
       <div className="mx-auto flex min-h-screen max-w-7xl">
         <aside className="hidden w-64 flex-col border-r border-slate-200/60 bg-white/70 px-5 py-8 backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-950/70 md:flex">
           <div className="flex items-center justify-between">

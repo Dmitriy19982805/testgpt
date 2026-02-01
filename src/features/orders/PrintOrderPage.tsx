@@ -23,10 +23,12 @@ export function PrintOrderPage() {
   }
 
   return (
-    <div className="space-y-6 rounded-3xl bg-white p-8 text-slate-900 shadow-soft">
+    <div className="space-y-6 rounded-3xl bg-white p-8 text-slate-900 shadow-soft dark:bg-slate-900/80 dark:text-slate-50">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">{t.orders.print.summary}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t.orders.print.summary}
+          </p>
           <h1 className="text-2xl font-semibold">{order.orderNo}</h1>
         </div>
         <Button variant="outline" onClick={() => window.print()}>
@@ -35,15 +37,19 @@ export function PrintOrderPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.customer}</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400">
+            {t.orders.print.customer}
+          </h2>
           <p className="mt-2 text-lg font-medium">
             {customer?.name ?? t.orders.walkInCustomer}
           </p>
-          <p className="text-sm text-slate-500">{customer?.phone}</p>
-          <p className="text-sm text-slate-500">{customer?.email}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.phone}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.email}</p>
         </div>
         <div>
-          <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.details}</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400">
+            {t.orders.print.details}
+          </h2>
           <p className="mt-2 text-sm">
             {t.orders.print.dueLabel} {formatDate(order.dueAt)}
           </p>
@@ -57,14 +63,18 @@ export function PrintOrderPage() {
         </div>
       </div>
       <div>
-        <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.notes}</h2>
+        <h2 className="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400">
+          {t.orders.print.notes}
+        </h2>
         <p className="mt-2 text-sm">{order.designNotes || t.orders.print.noDesignNotes}</p>
         <p className="mt-2 text-sm">
           {t.orders.print.inscriptionLabel} {order.inscriptionText || t.orders.print.none}
         </p>
       </div>
       <div>
-        <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.checklist}</h2>
+        <h2 className="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400">
+          {t.orders.print.checklist}
+        </h2>
         <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
           {order.checklist.length === 0 ? (
             <li>{t.orders.print.noChecklist}</li>
