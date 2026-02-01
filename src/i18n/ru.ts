@@ -244,7 +244,7 @@ export const ru = {
   demo: {
     customerName: "Екатерина Нестерова",
     customerNotes: "Предпочитает начинку со сливками",
-    customerTags: ["свадьба", "премиум"],
+    customerTags: Array.from(["свадьба", "премиум"] as const),
     ingredients: {
       vanilla: "Ваниль",
       butter: "Сливочное масло",
@@ -254,7 +254,7 @@ export const ru = {
     recipeNotes: "Слои взбитых сливок + цедра лимона.",
     orderItemType: "Торт",
     orderItemName: "Ванильный 2-ярусный",
-    orderItemOptions: ["жемчужное покрытие", "свежие цветы"],
+    orderItemOptions: Array.from(["жемчужное покрытие", "свежие цветы"] as const),
     designNotes: "Палитра пыльная роза, акценты сусального золота.",
     inscriptionText: "С этого начинается навсегда",
     allergens: "Молочные продукты, глютен",
