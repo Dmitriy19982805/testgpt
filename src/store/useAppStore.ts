@@ -1,0 +1,173 @@
+import { create } from "zustand";
+import { db } from "../db";
+import type { Customer, Ingredient, Order, Recipe, Settings } from "../db/types";
+import { createId, createOrderNumber } from "../utils/ids";
+
+interface AppState {
+  customers: Customer[];
+  orders: Order[];
+  ingredients: Ingredient[];
+  recipes: Recipe[];
+  settings: Settings | null;
+  isLoaded: boolean;
+  loadAll: () => Promise<void>;
+  saveSettings: (settings: Settings) => Promise<void>;
+  seedDemo: () => Promise<void>;
+  clearAll: () => Promise<void>;
+  addOrder: (order: Order) => Promise<void>;
+}
+
+const defaultSettings: Settings = {
+  id: "settings",
+  businessName: "Confectioner Cabinet",
+  currency: "USD",
+  dayCapacityRules: 5,
+  defaultDepositPct: 40,
+  theme: "light",
+  pin: "1234",
+};
+
+export const useAppStore = create<AppState>((set, get) => ({
+  customers: [],
+  orders: [],
+  ingredients: [],
+  recipes: [],
+  settings: null,
+  isLoaded: false,
+  loadAll: async () => {
+    const [customers, orders, ingredients, recipes, settings] =
+      await Promise.all([
+        db.customers.toArray(),
+        db.orders.toArray(),
+        db.ingredients.toArray(),
+        db.recipes.toArray(),
+        db.settings.get("settings"),
+      ]);
+    if (!settings) {
+      await db.settings.put(defaultSettings);
+    }
+    set({
+      customers,
+      orders,
+      ingredients,
+      recipes,
+      settings: settings ?? defaultSettings,
+      isLoaded: true,
+    });
+  },
+  saveSettings: async (settings) => {
+    await db.settings.put(settings);
+    set({ settings });
+  },
+  seedDemo: async () => {
+    const now = new Date();
+    const customerId = createId("cust");
+    const customer: Customer = {
+      id: customerId,
+      name: "Sienna Harbor",
+      phone: "+1 (555) 302-1988",
+      email: "sienna@example.com",
+      notes: "Prefers whipped cream filling",
+      tags: ["wedding", "vip"],
+      createdAt: now.toISOString(),
+    };
+    const customers: Customer[] = [customer];
+    const ingredients: Ingredient[] = [
+      { id: createId("ing"), name: "Vanilla Bean", unit: "oz", pricePerUnit: 3.5 },
+      { id: createId("ing"), name: "Butter", unit: "lb", pricePerUnit: 4.2 },
+      { id: createId("ing"), name: "Flour", unit: "lb", pricePerUnit: 1.1 },
+    ];
+    const recipes: Recipe[] = [
+      {
+        id: createId("rec"),
+        name: "Signature Vanilla Sponge",
+        yieldKg: 4,
+        ingredients: ingredients.map((item) => ({
+          ingredientId: item.id,
+          qty: 0.4,
+        })),
+        notes: "Whipped cream layers + lemon zest.",
+      },
+    ];
+    const orders: Order[] = [
+      {
+        id: createId("ord"),
+        orderNo: createOrderNumber(0),
+        status: "confirmed",
+        createdAt: now.toISOString(),
+        dueAt: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+        customerId,
+        items: [
+          {
+            type: "Cake",
+            name: "2-tier vanilla",
+            weightKg: 6,
+            qty: 1,
+            options: ["pearl finish", "fresh florals"],
+          },
+        ],
+        designNotes: "Dusty rose palette, gold leaf accents.",
+        inscriptionText: "Forever starts here",
+        allergens: "Dairy, gluten",
+        references: [],
+        pickupOrDelivery: "delivery",
+        address: "17 Marina Ave, Bayview",
+        deliveryFee: 35,
+        price: { subtotal: 420, discount: 20, delivery: 35, total: 435 },
+        payments: [
+          {
+            id: createId("pay"),
+            type: "deposit",
+            amount: 150,
+            at: now.toISOString(),
+            method: "card",
+            note: "Paid via Square",
+          },
+        ],
+        cost: {
+          ingredientsCost: 60,
+          packagingCost: 18,
+          laborCost: 120,
+          totalCost: 198,
+        },
+        profit: {
+          grossProfit: 237,
+          marginPct: 54.5,
+        },
+        checklist: [
+          { id: createId("check"), text: "Finalize sketch", done: true },
+          { id: createId("check"), text: "Confirm delivery window", done: false },
+        ],
+        timeline: [
+          { id: createId("time"), at: now.toISOString(), text: "Order confirmed" },
+        ],
+      },
+    ];
+
+    await db.transaction("rw", db.customers, db.orders, db.ingredients, db.recipes, async () => {
+      await db.customers.clear();
+      await db.orders.clear();
+      await db.ingredients.clear();
+      await db.recipes.clear();
+      await db.customers.bulkAdd(customers);
+      await db.orders.bulkAdd(orders);
+      await db.ingredients.bulkAdd(ingredients);
+      await db.recipes.bulkAdd(recipes);
+    });
+
+    set({ customers, orders, ingredients, recipes });
+  },
+  clearAll: async () => {
+    await db.transaction("rw", db.customers, db.orders, db.ingredients, db.recipes, async () => {
+      await db.customers.clear();
+      await db.orders.clear();
+      await db.ingredients.clear();
+      await db.recipes.clear();
+    });
+    set({ customers: [], orders: [], ingredients: [], recipes: [] });
+  },
+  addOrder: async (order) => {
+    await db.orders.put(order);
+    set({ orders: [...get().orders, order] });
+  },
+}));
