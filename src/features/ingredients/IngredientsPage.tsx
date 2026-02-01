@@ -12,9 +12,10 @@ import type { Ingredient } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
+import { DrawerSheet } from "../../components/common/DrawerSheet";
 
 export function IngredientsPage() {
-  const { ingredients, loadAll, deleteIngredient, settings } = useAppStore();
+  const { ingredients, recipes, loadAll, deleteIngredient, settings } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [actionIngredientId, setActionIngredientId] = useState<string | null>(null);
@@ -56,6 +57,13 @@ export function IngredientsPage() {
   };
 
   const handleDelete = async (ingredient: Ingredient) => {
+    const usedInRecipes = recipes.some((recipe) =>
+      recipe.ingredients.some((entry) => entry.ingredientId === ingredient.id)
+    );
+    if (usedInRecipes) {
+      window.alert("Нельзя удалить ингредиент: он используется в рецептах.");
+      return;
+    }
     const confirmed = window.confirm(`Удалить ингредиент ${ingredient.name}?`);
     if (!confirmed) {
       return;
@@ -72,20 +80,28 @@ export function IngredientsPage() {
     setActionIngredientId(null);
   };
 
-  const handleToggleForm = () => {
-    if (showForm) {
-      setShowForm(false);
-      setEditingIngredient(null);
-      setName("");
-      setUnit("kg");
-      setPrice(0);
-      return;
-    }
+  const openNewIngredient = () => {
     setEditingIngredient(null);
     setName("");
     setUnit("kg");
     setPrice(0);
     setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingIngredient(null);
+    setName("");
+    setUnit("kg");
+    setPrice(0);
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      closeForm();
+      return;
+    }
+    openNewIngredient();
   };
 
   const activeIngredient = actionIngredientId
@@ -107,8 +123,16 @@ export function IngredientsPage() {
         }
       />
 
-      {showForm ? (
-        <GlassCard className="p-6 space-y-3">
+      <DrawerSheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeForm();
+          }
+        }}
+        title={editingIngredient ? "Редактирование ингредиента" : "Новый ингредиент"}
+      >
+        <div className="space-y-3">
           <Input
             placeholder={t.ingredients.placeholders.name}
             value={name}
@@ -129,15 +153,15 @@ export function IngredientsPage() {
           <Button onClick={handleSave} disabled={!name}>
             {t.ingredients.save}
           </Button>
-        </GlassCard>
-      ) : null}
+        </div>
+      </DrawerSheet>
 
       {ingredients.length === 0 ? (
         <EmptyState
           title={t.ingredients.empty.title}
           description={t.ingredients.empty.description}
           actionLabel={t.ingredients.empty.action}
-          onAction={() => setShowForm(true)}
+          onAction={openNewIngredient}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -171,23 +195,22 @@ export function IngredientsPage() {
 
       <ActionMenu
         open={Boolean(activeIngredient)}
-        onClose={() => setActionIngredientId(null)}
         anchorEl={activeAnchor}
-        actions={
-          activeIngredient
-            ? [
-                { label: "Редактировать", onSelect: () => handleEdit(activeIngredient) },
-                {
-                  label: "Удалить",
-                  tone: "destructive",
-                  onSelect: async () => {
-                    setActionIngredientId(null);
-                    await handleDelete(activeIngredient);
-                  },
-                },
-              ]
-            : []
-        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setActionIngredientId(null);
+          }
+        }}
+        onEdit={() => {
+          if (activeIngredient) {
+            handleEdit(activeIngredient);
+          }
+        }}
+        onDelete={() => {
+          if (activeIngredient) {
+            void handleDelete(activeIngredient);
+          }
+        }}
       />
     </div>
   );

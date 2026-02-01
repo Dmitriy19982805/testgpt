@@ -14,6 +14,7 @@ import { createId } from "../../utils/ids";
 import type { Customer } from "../../db/types";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
+import { DrawerSheet } from "../../components/common/DrawerSheet";
 
 const schema = z.object({
   name: z.string().min(2, t.customers.validation.nameRequired),
@@ -91,16 +92,24 @@ export function CustomersPage() {
     setActionCustomerId(null);
   };
 
-  const handleToggleForm = () => {
-    if (showForm) {
-      setShowForm(false);
-      setEditingCustomer(null);
-      reset();
-      return;
-    }
+  const openNewCustomer = () => {
     setEditingCustomer(null);
     reset();
     setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingCustomer(null);
+    reset();
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      closeForm();
+      return;
+    }
+    openNewCustomer();
   };
 
   const activeCustomer = actionCustomerId
@@ -120,32 +129,32 @@ export function CustomersPage() {
         }
       />
 
-      {showForm ? (
-        <GlassCard className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-            <Input placeholder={t.customers.placeholders.fullName} {...register("name")} />
-            {errors.name ? (
-              <p className="text-xs text-rose-500">{errors.name.message}</p>
-            ) : null}
-            <Input placeholder={t.customers.placeholders.phone} {...register("phone")} />
-            {errors.phone ? (
-              <p className="text-xs text-rose-500">{errors.phone.message}</p>
-            ) : null}
-            <Input placeholder={t.customers.placeholders.email} {...register("email")} />
-            {errors.email ? (
-              <p className="text-xs text-rose-500">{errors.email.message}</p>
-            ) : null}
-            <Button type="submit">{t.customers.save}</Button>
-          </form>
-        </GlassCard>
-      ) : null}
+      <DrawerSheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeForm();
+          }
+        }}
+        title={editingCustomer ? "Редактирование клиента" : "Новый клиент"}
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <Input placeholder={t.customers.placeholders.fullName} {...register("name")} />
+          {errors.name ? <p className="text-xs text-rose-500">{errors.name.message}</p> : null}
+          <Input placeholder={t.customers.placeholders.phone} {...register("phone")} />
+          {errors.phone ? <p className="text-xs text-rose-500">{errors.phone.message}</p> : null}
+          <Input placeholder={t.customers.placeholders.email} {...register("email")} />
+          {errors.email ? <p className="text-xs text-rose-500">{errors.email.message}</p> : null}
+          <Button type="submit">{t.customers.save}</Button>
+        </form>
+      </DrawerSheet>
 
       {customers.length === 0 ? (
         <EmptyState
           title={t.customers.empty.title}
           description={t.customers.empty.description}
           actionLabel={t.customers.empty.action}
-          onAction={() => setShowForm(true)}
+          onAction={openNewCustomer}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -177,23 +186,22 @@ export function CustomersPage() {
 
       <ActionMenu
         open={Boolean(activeCustomer)}
-        onClose={() => setActionCustomerId(null)}
         anchorEl={activeAnchor}
-        actions={
-          activeCustomer
-            ? [
-                { label: "Редактировать", onSelect: () => handleEdit(activeCustomer) },
-                {
-                  label: "Удалить",
-                  tone: "destructive",
-                  onSelect: async () => {
-                    setActionCustomerId(null);
-                    await handleDelete(activeCustomer);
-                  },
-                },
-              ]
-            : []
-        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setActionCustomerId(null);
+          }
+        }}
+        onEdit={() => {
+          if (activeCustomer) {
+            handleEdit(activeCustomer);
+          }
+        }}
+        onDelete={() => {
+          if (activeCustomer) {
+            void handleDelete(activeCustomer);
+          }
+        }}
       />
     </div>
   );

@@ -99,7 +99,11 @@ export function OrdersPage() {
 
       <DrawerSheet
         open={showForm}
-        onClose={closeForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeForm();
+          }
+        }}
         title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
       >
         <OrderForm
@@ -313,23 +317,22 @@ export function OrdersPage() {
 
       <ActionMenu
         open={Boolean(activeOrder)}
-        onClose={() => setActionOrderId(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActionOrderId(null);
+          }
+        }}
         anchorEl={activeAnchor}
-        actions={
-          activeOrder
-            ? [
-                { label: "Редактировать", onSelect: () => handleEdit(activeOrder) },
-                {
-                  label: "Удалить",
-                  tone: "destructive",
-                  onSelect: async () => {
-                    setActionOrderId(null);
-                    await handleDelete(activeOrder.id, activeOrder.orderNo);
-                  },
-                },
-              ]
-            : []
-        }
+        onEdit={() => {
+          if (activeOrder) {
+            handleEdit(activeOrder);
+          }
+        }}
+        onDelete={() => {
+          if (activeOrder) {
+            void handleDelete(activeOrder.id, activeOrder.orderNo);
+          }
+        }}
       />
     </div>
   );

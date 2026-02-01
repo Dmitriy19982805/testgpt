@@ -1,11 +1,19 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ActionSheet, type ActionSheetAction } from "./ActionSheet";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ActionSheet } from "./ActionSheet";
 import { cn } from "../ui/utils";
+
+interface ActionMenuLabels {
+  edit?: ReactNode;
+  delete?: ReactNode;
+  cancel?: ReactNode;
+}
 
 interface ActionMenuProps {
   open: boolean;
-  actions: ActionSheetAction[];
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  labels?: ActionMenuLabels;
   anchorEl?: HTMLElement | null;
 }
 
@@ -13,7 +21,14 @@ const DESKTOP_QUERY = "(min-width: 768px)";
 const POPOVER_PADDING = 12;
 const POPOVER_OFFSET = 8;
 
-export function ActionMenu({ open, actions, onClose, anchorEl }: ActionMenuProps) {
+export function ActionMenu({
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  labels,
+  anchorEl,
+}: ActionMenuProps) {
   const [isDesktop, setIsDesktop] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, ready: false });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,15 +71,15 @@ export function ActionMenu({ open, actions, onClose, anchorEl }: ActionMenuProps
   };
 
   useLayoutEffect(() => {
-    if (!open || !isDesktop) {
+    if (!open || !isDesktop || !anchorEl) {
       return;
     }
     setPosition((prev) => ({ ...prev, ready: false }));
     updatePosition();
-  }, [open, isDesktop, actions.length, anchorEl]);
+  }, [open, isDesktop, anchorEl]);
 
   useEffect(() => {
-    if (!open || !isDesktop) {
+    if (!open || !isDesktop || !anchorEl) {
       return;
     }
     const handleUpdate = () => updatePosition();
@@ -80,8 +95,36 @@ export function ActionMenu({ open, actions, onClose, anchorEl }: ActionMenuProps
     return null;
   }
 
+  const handleEdit = () => {
+    onOpenChange(false);
+    onEdit();
+  };
+
+  const handleDelete = () => {
+    onOpenChange(false);
+    onDelete();
+  };
+
   if (!isDesktop) {
-    return <ActionSheet open={open} actions={actions} onClose={onClose} />;
+    return (
+      <ActionSheet
+        open={open}
+        actions={[
+          { label: labels?.edit ?? "Редактировать", onSelect: handleEdit },
+          {
+            label: labels?.delete ?? "Удалить",
+            tone: "destructive",
+            onSelect: handleDelete,
+          },
+        ]}
+        onClose={() => onOpenChange(false)}
+        cancelLabel={labels?.cancel ?? "Отмена"}
+      />
+    );
+  }
+
+  if (!anchorEl) {
+    return null;
   }
 
   return (
@@ -90,7 +133,7 @@ export function ActionMenu({ open, actions, onClose, anchorEl }: ActionMenuProps
         type="button"
         className="absolute inset-0"
         aria-label="Закрыть"
-        onClick={onClose}
+        onClick={() => onOpenChange(false)}
       />
       <div
         ref={menuRef}
@@ -102,21 +145,20 @@ export function ActionMenu({ open, actions, onClose, anchorEl }: ActionMenuProps
       >
         <div className="glass-card rounded-2xl border border-white/40 shadow-[0_10px_30px_rgba(15,23,42,0.12)] dark:border-slate-800/70">
           <div className="py-1 text-sm">
-            {actions.map((action, index) => (
-              <button
-                key={`${index}-${String(action.label)}`}
-                type="button"
-                className={cn(
-                  "w-full px-4 py-2.5 text-left font-medium transition hover:bg-white/50 dark:hover:bg-slate-800/50",
-                  action.tone === "destructive"
-                    ? "text-rose-500 hover:text-rose-600"
-                    : "text-slate-700 dark:text-slate-100"
-                )}
-                onClick={action.onSelect}
-              >
-                {action.label}
-              </button>
-            ))}
+            <button
+              type="button"
+              className="w-full px-4 py-2.5 text-left font-medium text-slate-700 transition hover:bg-white/50 dark:text-slate-100 dark:hover:bg-slate-800/50"
+              onClick={handleEdit}
+            >
+              {labels?.edit ?? "Редактировать"}
+            </button>
+            <button
+              type="button"
+              className="w-full px-4 py-2.5 text-left font-medium text-rose-500 transition hover:bg-white/50 hover:text-rose-600 dark:hover:bg-slate-800/50"
+              onClick={handleDelete}
+            >
+              {labels?.delete ?? "Удалить"}
+            </button>
           </div>
         </div>
       </div>

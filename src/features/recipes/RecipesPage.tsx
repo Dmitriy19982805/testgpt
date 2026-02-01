@@ -12,6 +12,7 @@ import type { Recipe } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
+import { DrawerSheet } from "../../components/common/DrawerSheet";
 
 export function RecipesPage() {
   const { recipes, ingredients, loadAll, settings, deleteRecipe } = useAppStore();
@@ -85,20 +86,28 @@ export function RecipesPage() {
     setActionRecipeId(null);
   };
 
-  const handleToggleForm = () => {
-    if (showForm) {
-      setShowForm(false);
-      setEditingRecipe(null);
-      setName("");
-      setYieldKg(1);
-      setIngredientQty({});
-      return;
-    }
+  const openNewRecipe = () => {
     setEditingRecipe(null);
     setName("");
     setYieldKg(1);
     setIngredientQty({});
     setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingRecipe(null);
+    setName("");
+    setYieldKg(1);
+    setIngredientQty({});
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      closeForm();
+      return;
+    }
+    openNewRecipe();
   };
 
   const activeRecipe = actionRecipeId
@@ -125,8 +134,16 @@ export function RecipesPage() {
         }
       />
 
-      {showForm ? (
-        <GlassCard className="p-6 space-y-4">
+      <DrawerSheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeForm();
+          }
+        }}
+        title={editingRecipe ? "Редактирование рецепта" : "Новый рецепт"}
+      >
+        <div className="space-y-4">
           <Input
             placeholder={t.recipes.placeholders.name}
             value={name}
@@ -142,9 +159,7 @@ export function RecipesPage() {
           <div className="space-y-2">
             <p className="text-sm font-medium">{t.recipes.ingredientsLabel}</p>
             {ingredients.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                {t.recipes.ingredientsEmpty}
-              </p>
+              <p className="text-sm text-slate-500">{t.recipes.ingredientsEmpty}</p>
             ) : (
               ingredients.map((ingredient) => (
                 <div key={ingredient.id} className="flex items-center gap-3">
@@ -168,15 +183,15 @@ export function RecipesPage() {
           <Button onClick={handleSave} disabled={!name}>
             {t.recipes.save}
           </Button>
-        </GlassCard>
-      ) : null}
+        </div>
+      </DrawerSheet>
 
       {recipes.length === 0 ? (
         <EmptyState
           title={t.recipes.empty.title}
           description={t.recipes.empty.description}
           actionLabel={t.recipes.empty.action}
-          onAction={() => setShowForm(true)}
+          onAction={openNewRecipe}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -225,23 +240,22 @@ export function RecipesPage() {
 
       <ActionMenu
         open={Boolean(activeRecipe)}
-        onClose={() => setActionRecipeId(null)}
         anchorEl={activeAnchor}
-        actions={
-          activeRecipe
-            ? [
-                { label: "Редактировать", onSelect: () => handleEdit(activeRecipe) },
-                {
-                  label: "Удалить",
-                  tone: "destructive",
-                  onSelect: async () => {
-                    setActionRecipeId(null);
-                    await handleDelete(activeRecipe);
-                  },
-                },
-              ]
-            : []
-        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setActionRecipeId(null);
+          }
+        }}
+        onEdit={() => {
+          if (activeRecipe) {
+            handleEdit(activeRecipe);
+          }
+        }}
+        onDelete={() => {
+          if (activeRecipe) {
+            void handleDelete(activeRecipe);
+          }
+        }}
       />
     </div>
   );
