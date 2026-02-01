@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -10,13 +10,14 @@ import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Ingredient } from "../../db/types";
 import { t } from "../../i18n";
-import { ActionSheet } from "../../components/common/ActionSheet";
+import { ActionMenu } from "../../components/common/ActionMenu";
 
 export function IngredientsPage() {
   const { ingredients, loadAll, deleteIngredient } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [actionIngredientId, setActionIngredientId] = useState<string | null>(null);
+  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("kg");
   const [price, setPrice] = useState(0);
@@ -89,6 +90,9 @@ export function IngredientsPage() {
   const activeIngredient = actionIngredientId
     ? ingredients.find((ingredient) => ingredient.id === actionIngredientId)
     : null;
+  const activeAnchor = actionIngredientId
+    ? actionButtonRefs.current[actionIngredientId]
+    : null;
 
   return (
     <div className="space-y-6">
@@ -149,6 +153,9 @@ export function IngredientsPage() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 rounded-full p-0"
+                  ref={(node) => {
+                    actionButtonRefs.current[ingredient.id] = node;
+                  }}
                   onClick={() => setActionIngredientId(ingredient.id)}
                   aria-label="Действия с ингредиентом"
                 >
@@ -160,9 +167,10 @@ export function IngredientsPage() {
         </div>
       )}
 
-      <ActionSheet
+      <ActionMenu
         open={Boolean(activeIngredient)}
         onClose={() => setActionIngredientId(null)}
+        anchorEl={activeAnchor}
         actions={
           activeIngredient
             ? [

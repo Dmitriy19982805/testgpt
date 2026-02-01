@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { addDays, format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ru as ruLocale } from "date-fns/locale";
 import { Pencil } from "lucide-react";
@@ -14,7 +14,7 @@ import { OrderForm } from "./OrderForm";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
 import { t } from "../../i18n";
-import { ActionSheet } from "../../components/common/ActionSheet";
+import { ActionMenu } from "../../components/common/ActionMenu";
 import type { Order } from "../../db/types";
 
 const views = ["list", "kanban", "calendar"] as const;
@@ -27,6 +27,7 @@ export function OrdersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [actionOrderId, setActionOrderId] = useState<string | null>(null);
+  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -56,6 +57,7 @@ export function OrdersPage() {
   };
 
   const activeOrder = actionOrderId ? orders.find((order) => order.id === actionOrderId) : null;
+  const activeAnchor = actionOrderId ? actionButtonRefs.current[actionOrderId] : null;
 
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
@@ -172,6 +174,9 @@ export function OrdersPage() {
                     variant="ghost"
                     size="sm"
                     className="h-9 w-9 rounded-full p-0"
+                    ref={(node) => {
+                      actionButtonRefs.current[order.id] = node;
+                    }}
                     onClick={() => setActionOrderId(order.id)}
                     aria-label="Действия с заказом"
                   >
@@ -209,6 +214,9 @@ export function OrdersPage() {
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 rounded-full p-0"
+                          ref={(node) => {
+                            actionButtonRefs.current[order.id] = node;
+                          }}
                           onClick={() => setActionOrderId(order.id)}
                           aria-label="Действия с заказом"
                         >
@@ -295,9 +303,10 @@ export function OrdersPage() {
         </GlassCard>
       ) : null}
 
-      <ActionSheet
+      <ActionMenu
         open={Boolean(activeOrder)}
         onClose={() => setActionOrderId(null)}
+        anchorEl={activeAnchor}
         actions={
           activeOrder
             ? [
