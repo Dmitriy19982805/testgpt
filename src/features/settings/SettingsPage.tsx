@@ -65,18 +65,22 @@ export function SettingsPage({ auth }: SettingsPageProps) {
     if (!file) return;
     const text = await file.text();
     const payload = JSON.parse(text);
-    await db.transaction("rw", db.customers, db.orders, db.ingredients, db.recipes, db.settings, async () => {
-      await db.customers.clear();
-      await db.orders.clear();
-      await db.ingredients.clear();
-      await db.recipes.clear();
-      await db.settings.clear();
-      await db.customers.bulkAdd(payload.customers ?? []);
-      await db.orders.bulkAdd(payload.orders ?? []);
-      await db.ingredients.bulkAdd(payload.ingredients ?? []);
-      await db.recipes.bulkAdd(payload.recipes ?? []);
-      await db.settings.bulkAdd(payload.settings ?? []);
-    });
+    await db.transaction(
+      "rw",
+      [db.customers, db.orders, db.ingredients, db.recipes, db.settings],
+      async () => {
+        await db.customers.clear();
+        await db.orders.clear();
+        await db.ingredients.clear();
+        await db.recipes.clear();
+        await db.settings.clear();
+        await db.customers.bulkAdd(payload.customers ?? []);
+        await db.orders.bulkAdd(payload.orders ?? []);
+        await db.ingredients.bulkAdd(payload.ingredients ?? []);
+        await db.recipes.bulkAdd(payload.recipes ?? []);
+        await db.settings.bulkAdd(payload.settings ?? []);
+      }
+    );
     await loadAll();
   };
 
