@@ -24,6 +24,10 @@ const schema = z.object({
 });
 
 export type OrderFormValues = z.infer<typeof schema>;
+type FormStatus = "draft" | "confirmed" | "in-progress" | "ready" | "completed";
+
+const toFormStatus = (s: string): FormStatus =>
+  (s === "cancelled" ? "draft" : s) as FormStatus;
 
 const steps = t.orders.form.steps;
 
@@ -45,7 +49,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       customerName:
         customers.find((customer) => customer.id === initialOrder?.customerId)?.name ?? "",
       dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
-      status: initialOrder?.status ?? "draft",
+      status: toFormStatus(initialOrder?.status ?? "draft"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
       address: initialOrder?.address ?? "",
       designNotes: initialOrder?.designNotes ?? "",
