@@ -15,6 +15,7 @@ import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
+import { DrawerSheet } from "../../components/common/DrawerSheet";
 import type { Order } from "../../db/types";
 
 const views = ["list", "kanban", "calendar"] as const;
@@ -66,14 +67,22 @@ export function OrdersPage() {
     setActionOrderId(null);
   };
 
-  const handleToggleForm = () => {
-    if (showForm) {
-      setShowForm(false);
-      setEditingOrder(null);
-      return;
-    }
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingOrder(null);
+  };
+
+  const openNewOrder = () => {
     setEditingOrder(null);
     setShowForm(true);
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      closeForm();
+      return;
+    }
+    openNewOrder();
   };
 
   return (
@@ -88,18 +97,17 @@ export function OrdersPage() {
         }
       />
 
-      {showForm ? (
-        <GlassCard className="p-6">
-          <OrderForm
-            initialOrder={editingOrder}
-            onCreated={() => setShowForm(false)}
-            onUpdated={() => {
-              setShowForm(false);
-              setEditingOrder(null);
-            }}
-          />
-        </GlassCard>
-      ) : null}
+      <DrawerSheet
+        open={showForm}
+        onClose={closeForm}
+        title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
+      >
+        <OrderForm
+          initialOrder={editingOrder}
+          onCreated={closeForm}
+          onUpdated={closeForm}
+        />
+      </DrawerSheet>
 
       <GlassCard className="p-6">
         <div className="flex flex-wrap items-center gap-3">
@@ -142,7 +150,7 @@ export function OrdersPage() {
           title={t.orders.empty.title}
           description={t.orders.empty.description}
           actionLabel={t.orders.empty.action}
-          onAction={() => setShowForm(true)}
+          onAction={openNewOrder}
         />
       ) : null}
 
