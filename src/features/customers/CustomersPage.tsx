@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,7 @@ import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Customer } from "../../db/types";
 import { t } from "../../i18n";
-import { ActionSheet } from "../../components/common/ActionSheet";
+import { ActionMenu } from "../../components/common/ActionMenu";
 
 const schema = z.object({
   name: z.string().min(2, t.customers.validation.nameRequired),
@@ -28,6 +28,7 @@ export function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [actionCustomerId, setActionCustomerId] = useState<string | null>(null);
+  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const {
     register,
     handleSubmit,
@@ -105,6 +106,7 @@ export function CustomersPage() {
   const activeCustomer = actionCustomerId
     ? customers.find((customer) => customer.id === actionCustomerId)
     : null;
+  const activeAnchor = actionCustomerId ? actionButtonRefs.current[actionCustomerId] : null;
 
   return (
     <div className="space-y-6">
@@ -159,6 +161,9 @@ export function CustomersPage() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 rounded-full p-0"
+                  ref={(node) => {
+                    actionButtonRefs.current[customer.id] = node;
+                  }}
                   onClick={() => setActionCustomerId(customer.id)}
                   aria-label="Действия с клиентом"
                 >
@@ -170,9 +175,10 @@ export function CustomersPage() {
         </div>
       )}
 
-      <ActionSheet
+      <ActionMenu
         open={Boolean(activeCustomer)}
         onClose={() => setActionCustomerId(null)}
+        anchorEl={activeAnchor}
         actions={
           activeCustomer
             ? [

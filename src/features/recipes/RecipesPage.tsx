@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -11,13 +11,14 @@ import { createId } from "../../utils/ids";
 import type { Recipe } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
-import { ActionSheet } from "../../components/common/ActionSheet";
+import { ActionMenu } from "../../components/common/ActionMenu";
 
 export function RecipesPage() {
   const { recipes, ingredients, loadAll, settings, deleteRecipe } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [actionRecipeId, setActionRecipeId] = useState<string | null>(null);
+  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [name, setName] = useState("");
   const [yieldKg, setYieldKg] = useState(1);
   const [ingredientQty, setIngredientQty] = useState<Record<string, number>>({});
@@ -103,6 +104,7 @@ export function RecipesPage() {
   const activeRecipe = actionRecipeId
     ? recipes.find((recipe) => recipe.id === actionRecipeId)
     : null;
+  const activeAnchor = actionRecipeId ? actionButtonRefs.current[actionRecipeId] : null;
 
   const costLookup = useMemo(() => {
     return ingredients.reduce((acc, ingredient) => {
@@ -197,6 +199,9 @@ export function RecipesPage() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 rounded-full p-0"
+                  ref={(node) => {
+                    actionButtonRefs.current[recipe.id] = node;
+                  }}
                   onClick={() => setActionRecipeId(recipe.id)}
                   aria-label="Действия с рецептом"
                 >
@@ -218,9 +223,10 @@ export function RecipesPage() {
         </div>
       )}
 
-      <ActionSheet
+      <ActionMenu
         open={Boolean(activeRecipe)}
         onClose={() => setActionRecipeId(null)}
+        anchorEl={activeAnchor}
         actions={
           activeRecipe
             ? [
