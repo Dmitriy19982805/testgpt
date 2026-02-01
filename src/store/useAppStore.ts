@@ -16,6 +16,7 @@ interface AppState {
   seedDemo: () => Promise<void>;
   clearAll: () => Promise<void>;
   addOrder: (order: Order) => Promise<void>;
+  updateOrder: (order: Order) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
   deleteRecipe: (id: string) => Promise<void>;
@@ -175,6 +176,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   addOrder: async (order) => {
     await db.orders.put(order);
     set({ orders: [...get().orders, order] });
+  },
+  updateOrder: async (order) => {
+    await db.orders.put(order);
+    await get().loadAll();
   },
   deleteOrder: async (id) => {
     await db.orders.delete(id);

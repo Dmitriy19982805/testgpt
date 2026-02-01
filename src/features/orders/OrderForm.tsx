@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,29 +29,49 @@ const steps = t.orders.form.steps;
 
 interface OrderFormProps {
   onCreated?: () => void;
+  onUpdated?: () => void;
+  initialOrder?: Order | null;
 }
 
-export function OrderForm({ onCreated }: OrderFormProps) {
-  const { customers, orders, addOrder, settings } = useAppStore();
+export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps) {
+  const { customers, orders, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
   const [references, setReferences] = useState<
     { id: string; name: string; urlOrData: string }[]
   >([]);
+
+  const defaultValues = useMemo(
+    () => ({
+      customerName:
+        customers.find((customer) => customer.id === initialOrder?.customerId)?.name ?? "",
+      dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
+      status: initialOrder?.status ?? "draft",
+      pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
+      address: initialOrder?.address ?? "",
+      designNotes: initialOrder?.designNotes ?? "",
+      priceTotal: initialOrder?.price.total ?? 0,
+      deposit:
+        initialOrder?.payments.find((payment) => payment.type === "deposit")?.amount ?? 0,
+      checklist: initialOrder?.checklist.map((item) => item.text).join("\n") ?? "",
+    }),
+    [customers, initialOrder]
+  );
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    reset,
   } = useForm<OrderFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      status: "draft",
-      pickupOrDelivery: "pickup",
-      priceTotal: 0,
-      deposit: 0,
-    },
+    defaultValues,
   });
+
+  useEffect(() => {
+    reset(defaultValues);
+    setReferences(initialOrder?.references ?? []);
+  }, [defaultValues, initialOrder, reset]);
 
   const depositRemaining = useMemo(() => {
     const priceTotal = Number(watch("priceTotal") ?? 0);
@@ -78,6 +98,52 @@ export function OrderForm({ onCreated }: OrderFormProps) {
 
   const onSubmit = async (values: OrderFormValues) => {
     const customerId = customers.find((c) => c.name === values.customerName)?.id;
+    if (initialOrder) {
+      const depositPaymentIndex = initialOrder.payments.findIndex(
+        (payment) => payment.type === "deposit"
+      );
+      const nextPayments = [...initialOrder.payments];
+      if (depositPaymentIndex >= 0) {
+        nextPayments[depositPaymentIndex] = {
+          ...nextPayments[depositPaymentIndex],
+          amount: values.deposit,
+        };
+      } else {
+        nextPayments.push({
+          id: createId("pay"),
+          type: "deposit",
+          amount: values.deposit,
+          at: new Date().toISOString(),
+          method: "manual",
+        });
+      }
+
+      const updatedOrder: Order = {
+        ...initialOrder,
+        status: values.status,
+        dueAt: new Date(values.dueAt).toISOString(),
+        customerId: customerId ?? initialOrder.customerId,
+        designNotes: values.designNotes ?? "",
+        pickupOrDelivery: values.pickupOrDelivery,
+        address: values.address ?? "",
+        price: {
+          ...initialOrder.price,
+          subtotal: values.priceTotal,
+          total: values.priceTotal,
+        },
+        payments: nextPayments,
+        checklist: (values.checklist ?? "")
+          .split("\n")
+          .filter(Boolean)
+          .map((text) => ({ id: createId("check"), text, done: false })),
+        references,
+      };
+
+      await updateOrder(updatedOrder);
+      onUpdated?.();
+      return;
+    }
+
     const newOrder: Order = {
       id: createId("ord"),
       orderNo: createOrderNumber(orders.length),

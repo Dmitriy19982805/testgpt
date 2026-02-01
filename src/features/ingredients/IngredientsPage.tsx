@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -9,15 +10,35 @@ import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Ingredient } from "../../db/types";
 import { t } from "../../i18n";
+import { ActionSheet } from "../../components/common/ActionSheet";
 
 export function IngredientsPage() {
   const { ingredients, loadAll, deleteIngredient } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
+  const [actionIngredientId, setActionIngredientId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("kg");
   const [price, setPrice] = useState(0);
 
   const handleSave = async () => {
+    if (editingIngredient) {
+      const updated: Ingredient = {
+        ...editingIngredient,
+        name,
+        unit,
+        pricePerUnit: price,
+      };
+      await db.ingredients.put(updated);
+      await loadAll();
+      setName("");
+      setUnit("kg");
+      setPrice(0);
+      setShowForm(false);
+      setEditingIngredient(null);
+      return;
+    }
+
     const ingredient: Ingredient = {
       id: createId("ing"),
       name,
@@ -40,13 +61,42 @@ export function IngredientsPage() {
     await deleteIngredient(ingredient.id);
   };
 
+  const handleEdit = (ingredient: Ingredient) => {
+    setEditingIngredient(ingredient);
+    setName(ingredient.name);
+    setUnit(ingredient.unit);
+    setPrice(ingredient.pricePerUnit);
+    setShowForm(true);
+    setActionIngredientId(null);
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      setShowForm(false);
+      setEditingIngredient(null);
+      setName("");
+      setUnit("kg");
+      setPrice(0);
+      return;
+    }
+    setEditingIngredient(null);
+    setName("");
+    setUnit("kg");
+    setPrice(0);
+    setShowForm(true);
+  };
+
+  const activeIngredient = actionIngredientId
+    ? ingredients.find((ingredient) => ingredient.id === actionIngredientId)
+    : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={t.ingredients.title}
         description={t.ingredients.description}
         action={
-          <Button onClick={() => setShowForm((prev) => !prev)}>
+          <Button onClick={handleToggleForm}>
             {showForm ? t.ingredients.actions.close : t.ingredients.actions.add}
           </Button>
         }
@@ -98,16 +148,37 @@ export function IngredientsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-rose-500 hover:text-rose-600"
-                  onClick={() => handleDelete(ingredient)}
+                  className="h-9 w-9 rounded-full p-0"
+                  onClick={() => setActionIngredientId(ingredient.id)}
+                  aria-label="Действия с ингредиентом"
                 >
-                  Удалить
+                  <Pencil size={16} />
                 </Button>
               </div>
             </GlassCard>
           ))}
         </div>
       )}
+
+      <ActionSheet
+        open={Boolean(activeIngredient)}
+        onClose={() => setActionIngredientId(null)}
+        actions={
+          activeIngredient
+            ? [
+                { label: "Редактировать", onSelect: () => handleEdit(activeIngredient) },
+                {
+                  label: "Удалить",
+                  tone: "destructive",
+                  onSelect: async () => {
+                    setActionIngredientId(null);
+                    await handleDelete(activeIngredient);
+                  },
+                },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -12,6 +13,7 @@ import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Customer } from "../../db/types";
 import { t } from "../../i18n";
+import { ActionSheet } from "../../components/common/ActionSheet";
 
 const schema = z.object({
   name: z.string().min(2, t.customers.validation.nameRequired),
@@ -24,6 +26,8 @@ type FormValues = z.infer<typeof schema>;
 export function CustomersPage() {
   const { customers, orders, loadAll, deleteCustomer } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [actionCustomerId, setActionCustomerId] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -32,6 +36,21 @@ export function CustomersPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormValues) => {
+    if (editingCustomer) {
+      const updated: Customer = {
+        ...editingCustomer,
+        name: values.name,
+        phone: values.phone,
+        email: values.email,
+      };
+      await db.customers.put(updated);
+      await loadAll();
+      reset();
+      setShowForm(false);
+      setEditingCustomer(null);
+      return;
+    }
+
     const customer: Customer = {
       id: createId("cust"),
       name: values.name,
@@ -50,7 +69,7 @@ export function CustomersPage() {
   const handleDelete = async (customer: Customer) => {
     const hasOrders = orders.some((order) => order.customerId === customer.id);
     if (hasOrders) {
-      window.alert("Нельзя удалить клиента: есть заказы, связанные с ним.");
+      window.alert("Нельзя удалить клиента: есть связанные заказы.");
       return;
     }
     const confirmed = window.confirm(`Удалить клиента ${customer.name}?`);
@@ -60,13 +79,40 @@ export function CustomersPage() {
     await deleteCustomer(customer.id);
   };
 
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    reset({
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+    });
+    setShowForm(true);
+    setActionCustomerId(null);
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      setShowForm(false);
+      setEditingCustomer(null);
+      reset();
+      return;
+    }
+    setEditingCustomer(null);
+    reset();
+    setShowForm(true);
+  };
+
+  const activeCustomer = actionCustomerId
+    ? customers.find((customer) => customer.id === actionCustomerId)
+    : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={t.customers.title}
         description={t.customers.description}
         action={
-          <Button onClick={() => setShowForm((prev) => !prev)}>
+          <Button onClick={handleToggleForm}>
             {showForm ? t.customers.actions.close : t.customers.actions.add}
           </Button>
         }
@@ -112,16 +158,37 @@ export function CustomersPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-rose-500 hover:text-rose-600"
-                  onClick={() => handleDelete(customer)}
+                  className="h-9 w-9 rounded-full p-0"
+                  onClick={() => setActionCustomerId(customer.id)}
+                  aria-label="Действия с клиентом"
                 >
-                  Удалить
+                  <Pencil size={16} />
                 </Button>
               </div>
             </GlassCard>
           ))}
         </div>
       )}
+
+      <ActionSheet
+        open={Boolean(activeCustomer)}
+        onClose={() => setActionCustomerId(null)}
+        actions={
+          activeCustomer
+            ? [
+                { label: "Редактировать", onSelect: () => handleEdit(activeCustomer) },
+                {
+                  label: "Удалить",
+                  tone: "destructive",
+                  onSelect: async () => {
+                    setActionCustomerId(null);
+                    await handleDelete(activeCustomer);
+                  },
+                },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }
