@@ -1,72 +1,27 @@
-import { useRef, useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
-import { db } from "../../db";
-import { createId } from "../../utils/ids";
-import type { Customer } from "../../db/types";
+import type { Customer, Order } from "../../db/types";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
-
-const schema = z.object({
-  name: z.string().min(2, t.customers.validation.nameRequired),
-  phone: z.string().min(6, t.customers.validation.phoneRequired),
-  email: z.string().email(t.customers.validation.emailRequired),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { CustomerForm } from "./CustomerForm";
+import { OrderForm } from "../orders/OrderForm";
+import { formatDate } from "../../utils/date";
+import { formatCurrency } from "../../utils/currency";
 
 export function CustomersPage() {
-  const { customers, orders, loadAll, deleteCustomer } = useAppStore();
+  const { customers, orders, settings, deleteCustomer } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
   const [actionCustomerId, setActionCustomerId] = useState<string | null>(null);
   const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
-
-  const onSubmit = async (values: FormValues) => {
-    if (editingCustomer) {
-      const updated: Customer = {
-        ...editingCustomer,
-        name: values.name,
-        phone: values.phone,
-        email: values.email,
-      };
-      await db.customers.put(updated);
-      await loadAll();
-      reset();
-      setShowForm(false);
-      setEditingCustomer(null);
-      return;
-    }
-
-    const customer: Customer = {
-      id: createId("cust"),
-      name: values.name,
-      phone: values.phone,
-      email: values.email,
-      notes: "",
-      tags: [],
-      createdAt: new Date().toISOString(),
-    };
-    await db.customers.put(customer);
-    await loadAll();
-    reset();
-    setShowForm(false);
-  };
 
   const handleDelete = async (customer: Customer) => {
     const hasOrders = orders.some((order) => order.customerId === customer.id);
@@ -83,25 +38,18 @@ export function CustomersPage() {
 
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
-    reset({
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-    });
     setShowForm(true);
     setActionCustomerId(null);
   };
 
   const openNewCustomer = () => {
     setEditingCustomer(null);
-    reset();
     setShowForm(true);
   };
 
   const closeForm = () => {
     setShowForm(false);
     setEditingCustomer(null);
-    reset();
   };
 
   const handleToggleForm = () => {
@@ -116,6 +64,25 @@ export function CustomersPage() {
     ? customers.find((customer) => customer.id === actionCustomerId)
     : null;
   const activeAnchor = actionCustomerId ? actionButtonRefs.current[actionCustomerId] : null;
+  const customerOrders = useMemo(() => {
+    if (!editingCustomer) {
+      return [];
+    }
+
+    return [...orders]
+      .filter((order) => order.customerId === editingCustomer.id)
+      .sort((a, b) => new Date(b.dueAt).getTime() - new Date(a.dueAt).getTime());
+  }, [editingCustomer, orders]);
+
+  const handleEditOrder = (order: Order) => {
+    setEditingOrder(order);
+    setShowOrderForm(true);
+  };
+
+  const closeOrderForm = () => {
+    setEditingOrder(null);
+    setShowOrderForm(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -138,15 +105,71 @@ export function CustomersPage() {
         }}
         title={editingCustomer ? "Редактирование клиента" : "Новый клиент"}
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <Input placeholder={t.customers.placeholders.fullName} {...register("name")} />
-          {errors.name ? <p className="text-xs text-rose-500">{errors.name.message}</p> : null}
-          <Input placeholder={t.customers.placeholders.phone} {...register("phone")} />
-          {errors.phone ? <p className="text-xs text-rose-500">{errors.phone.message}</p> : null}
-          <Input placeholder={t.customers.placeholders.email} {...register("email")} />
-          {errors.email ? <p className="text-xs text-rose-500">{errors.email.message}</p> : null}
-          <Button type="submit">{t.customers.save}</Button>
-        </form>
+        <div className="space-y-6">
+          <CustomerForm
+            initialCustomer={editingCustomer}
+            onSaved={() => {
+              closeForm();
+            }}
+          />
+          {editingCustomer ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold">История заказов</h3>
+                <span className="text-xs text-slate-500">
+                  {customerOrders.length}
+                </span>
+              </div>
+              {customerOrders.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-200/70 px-4 py-3 text-sm text-slate-500 dark:border-slate-700/70">
+                  Заказов пока нет
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {customerOrders.map((order) => (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => handleEditOrder(order)}
+                      className="w-full rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-left text-sm transition hover:border-slate-300/80 dark:border-slate-700/70 dark:bg-slate-900/70 dark:hover:border-slate-500/70"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            {formatDate(order.dueAt)}
+                          </p>
+                          <p className="text-sm font-medium">
+                            {t.orders.statusLabels[order.status] ?? order.status}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold">
+                          {formatCurrency(order.price.total, settings?.currency)}
+                        </p>
+                      </div>
+                      {order.designNotes ? (
+                        <p className="mt-2 line-clamp-2 text-xs text-slate-500">
+                          {order.designNotes}
+                        </p>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </DrawerSheet>
+
+      <DrawerSheet
+        open={showOrderForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeOrderForm();
+          }
+        }}
+        title="Редактирование заказа"
+      >
+        <OrderForm initialOrder={editingOrder} onUpdated={closeOrderForm} />
       </DrawerSheet>
 
       {customers.length === 0 ? (

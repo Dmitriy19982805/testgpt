@@ -10,9 +10,12 @@ import { useAppStore } from "../../store/useAppStore";
 import type { Order } from "../../db/types";
 import { t } from "../../i18n";
 import { formatCurrency } from "../../utils/currency";
+import { DrawerSheet } from "../../components/common/DrawerSheet";
+import { CustomerForm } from "../customers/CustomerForm";
 
 const schema = z.object({
   customerName: z.string().min(2, t.orders.form.customerNameRequired),
+  customerId: z.string().optional(),
   dueAt: z.string().min(1, t.orders.form.dueDateRequired),
   status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
   pickupOrDelivery: z.enum(["pickup", "delivery"]),
@@ -43,6 +46,8 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
   const [references, setReferences] = useState<
     { id: string; name: string; urlOrData: string }[]
   >([]);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
 
   const defaultValues = useMemo(
     () => ({
@@ -50,6 +55,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         initialOrder?.customerName ??
         customers.find((customer) => customer.id === initialOrder?.customerId)?.name ??
         "",
+      customerId: initialOrder?.customerId ?? "",
       dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
       status: toFormStatus(initialOrder?.status ?? "confirmed"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
@@ -69,6 +75,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
     formState: { errors },
     watch,
     reset,
+    setValue,
   } = useForm<OrderFormValues>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -79,11 +86,31 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
     setReferences(initialOrder?.references ?? []);
   }, [defaultValues, initialOrder, reset]);
 
+  useEffect(() => {
+    register("customerName");
+    register("customerId");
+  }, [register]);
+
   const depositRemaining = useMemo(() => {
     const priceTotal = Number(watch("priceTotal") ?? 0);
     const deposit = Number(watch("deposit") ?? 0);
     return Math.max(priceTotal - deposit, 0);
   }, [watch]);
+
+  const customerQuery = watch("customerName") ?? "";
+  const filteredCustomers = useMemo(() => {
+    const normalizedQuery = customerQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return customers;
+    }
+    return customers.filter((customer) => {
+      const details = [customer.name, customer.phone, customer.notes]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return details.includes(normalizedQuery);
+    });
+  }, [customerQuery, customers]);
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -104,9 +131,9 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
 
   const onSubmit = async (values: OrderFormValues) => {
     const trimmedCustomerName = values.customerName.trim();
-    const matchedCustomer = customers.find((c) => c.name === trimmedCustomerName);
-    const customerId = matchedCustomer?.id ?? "";
-    const customerName = matchedCustomer?.name ?? trimmedCustomerName;
+    const selectedCustomer = customers.find((c) => c.id === values.customerId);
+    const customerId = selectedCustomer?.id ?? "";
+    const customerName = selectedCustomer?.name ?? trimmedCustomerName;
     if (initialOrder) {
       const depositPaymentIndex = initialOrder.payments.findIndex(
         (payment) => payment.type === "deposit"
@@ -213,6 +240,15 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
   const handleSaveDraft = handleSubmit((values) =>
     onSubmit({ ...values, status: "draft" })
   );
+  const handleSelectCustomer = (customer: { id: string; name: string }) => {
+    setValue("customerId", customer.id, { shouldValidate: true });
+    setValue("customerName", customer.name, { shouldValidate: true });
+    setIsCustomerListOpen(false);
+  };
+  const handleCustomerInputChange = (value: string) => {
+    setValue("customerName", value, { shouldValidate: true });
+    setValue("customerId", "", { shouldValidate: false });
+  };
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -236,8 +272,45 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
 
       {step === 0 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">{t.orders.form.customerNameLabel}</label>
-          <Input placeholder={t.orders.form.customerNamePlaceholder} {...register("customerName")} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-sm font-medium">Клиент</label>
+            <Button type="button" variant="subtle" onClick={() => setShowCustomerForm(true)}>
+              Новый клиент
+            </Button>
+          </div>
+          <div className="relative">
+            <Input
+              placeholder="Начните вводить имя..."
+              value={customerQuery}
+              onChange={(event) => handleCustomerInputChange(event.target.value)}
+              onFocus={() => setIsCustomerListOpen(true)}
+              onBlur={() => {
+                window.setTimeout(() => setIsCustomerListOpen(false), 120);
+              }}
+            />
+            {isCustomerListOpen && filteredCustomers.length > 0 ? (
+              <div className="absolute z-10 mt-2 w-full rounded-2xl border border-slate-200/70 bg-white/95 p-2 text-sm shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/95">
+                {filteredCustomers.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className="w-full rounded-2xl px-3 py-2 text-left transition hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => handleSelectCustomer({ id: customer.id, name: customer.name })}
+                  >
+                    <p className="font-medium">{customer.name}</p>
+                    {customer.phone || customer.notes ? (
+                      <p className="text-xs text-slate-500">
+                        {[customer.phone, customer.notes].filter(Boolean).join(" · ")}
+                      </p>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           {errors.customerName ? (
             <p className="text-xs text-rose-500">{errors.customerName.message}</p>
           ) : null}
@@ -362,6 +435,23 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
           ) : null}
         </div>
       </div>
+
+      <DrawerSheet
+        open={showCustomerForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowCustomerForm(false);
+          }
+        }}
+        title="Новый клиент"
+      >
+        <CustomerForm
+          onSaved={(customer) => {
+            setShowCustomerForm(false);
+            handleSelectCustomer({ id: customer.id, name: customer.name });
+          }}
+        />
+      </DrawerSheet>
     </form>
   );
 }
