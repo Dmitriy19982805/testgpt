@@ -104,6 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         createdAt: now.toISOString(),
         dueAt: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(),
         customerId,
+        customerName: customer.name,
         items: [
           {
             type: demo.orderItemType,

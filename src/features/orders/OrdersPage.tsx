@@ -35,9 +35,10 @@ export function OrdersPage() {
     return orders.filter((order) => {
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
       const customer = customers.find((c) => c.id === order.customerId);
+      const customerLabel = customer?.name ?? order.customerName ?? "";
       const matchesQuery =
         order.orderNo.toLowerCase().includes(query.toLowerCase()) ||
-        customer?.name.toLowerCase().includes(query.toLowerCase());
+        customerLabel.toLowerCase().includes(query.toLowerCase());
       return matchesStatus && (query ? matchesQuery : true);
     });
   }, [orders, customers, statusFilter, query]);
@@ -149,14 +150,13 @@ export function OrdersPage() {
         <div className="grid gap-4">
           {filtered.map((order) => {
             const customer = customers.find((c) => c.id === order.customerId);
+            const customerLabel = customer?.name ?? order.customerName ?? t.orders.walkInCustomer;
             return (
               <GlassCard key={order.id} className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-slate-500">{order.orderNo}</p>
-                    <h3 className="text-lg font-semibold">
-                      {customer?.name ?? t.orders.walkInCustomer}
-                    </h3>
+                    <h3 className="text-lg font-semibold">{customerLabel}</h3>
                     <p className="text-sm text-slate-500">
                       {t.orders.duePrefix} {formatDate(order.dueAt)}
                     </p>
