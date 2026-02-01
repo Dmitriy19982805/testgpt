@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
 import { formatDate } from "../../utils/date";
+import { t } from "../../i18n";
 
 export function PrintOrderPage() {
   const { id } = useParams();
@@ -13,9 +14,9 @@ export function PrintOrderPage() {
   if (!order) {
     return (
       <div className="space-y-4">
-        <p>Order not found.</p>
+        <p>{t.orders.print.notFound}</p>
         <Link to="/app/orders">
-          <Button>Back to orders</Button>
+          <Button>{t.orders.print.backToOrders}</Button>
         </Link>
       </div>
     );
@@ -25,37 +26,48 @@ export function PrintOrderPage() {
     <div className="space-y-6 rounded-3xl bg-white p-8 text-slate-900 shadow-soft">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">Order summary</p>
+          <p className="text-sm text-slate-500">{t.orders.print.summary}</p>
           <h1 className="text-2xl font-semibold">{order.orderNo}</h1>
         </div>
         <Button variant="outline" onClick={() => window.print()}>
-          Print
+          {t.orders.print.print}
         </Button>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-slate-500">Customer</h2>
-          <p className="mt-2 text-lg font-medium">{customer?.name ?? "Walk-in"}</p>
+          <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.customer}</h2>
+          <p className="mt-2 text-lg font-medium">
+            {customer?.name ?? t.orders.walkInCustomer}
+          </p>
           <p className="text-sm text-slate-500">{customer?.phone}</p>
           <p className="text-sm text-slate-500">{customer?.email}</p>
         </div>
         <div>
-          <h2 className="text-sm font-semibold uppercase text-slate-500">Details</h2>
-          <p className="mt-2 text-sm">Due: {formatDate(order.dueAt)}</p>
-          <p className="text-sm">Status: {order.status}</p>
-          <p className="text-sm">Fulfillment: {order.pickupOrDelivery}</p>
+          <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.details}</h2>
+          <p className="mt-2 text-sm">
+            {t.orders.print.dueLabel} {formatDate(order.dueAt)}
+          </p>
+          <p className="text-sm">
+            {t.orders.print.statusLabel} {t.orders.statusLabels[order.status] ?? order.status}
+          </p>
+          <p className="text-sm">
+            {t.orders.print.fulfillmentLabel}{" "}
+            {t.orders.fulfillment[order.pickupOrDelivery] ?? order.pickupOrDelivery}
+          </p>
         </div>
       </div>
       <div>
-        <h2 className="text-sm font-semibold uppercase text-slate-500">Notes</h2>
-        <p className="mt-2 text-sm">{order.designNotes || "No design notes"}</p>
-        <p className="mt-2 text-sm">Inscription: {order.inscriptionText || "None"}</p>
+        <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.notes}</h2>
+        <p className="mt-2 text-sm">{order.designNotes || t.orders.print.noDesignNotes}</p>
+        <p className="mt-2 text-sm">
+          {t.orders.print.inscriptionLabel} {order.inscriptionText || t.orders.print.none}
+        </p>
       </div>
       <div>
-        <h2 className="text-sm font-semibold uppercase text-slate-500">Checklist</h2>
+        <h2 className="text-sm font-semibold uppercase text-slate-500">{t.orders.print.checklist}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
           {order.checklist.length === 0 ? (
-            <li>No checklist items.</li>
+            <li>{t.orders.print.noChecklist}</li>
           ) : (
             order.checklist.map((item) => <li key={item.id}>{item.text}</li>)
           )}

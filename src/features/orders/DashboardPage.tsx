@@ -6,6 +6,7 @@ import { StatPill } from "../../components/common/StatPill";
 import { Badge } from "../../components/ui/badge";
 import { useAppStore } from "../../store/useAppStore";
 import { formatDate } from "../../utils/date";
+import { t } from "../../i18n";
 
 export function DashboardPage() {
   const { orders, customers } = useAppStore();
@@ -33,25 +34,24 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Dashboard"
-        description="Today’s production rhythm, alerts, and upcoming orders."
+        title={t.dashboard.title}
+        description={t.dashboard.description}
       />
 
       <div className="flex flex-wrap gap-3">
-        <StatPill label="orders" value={String(statusCounts.total)} />
-        <StatPill label="customers" value={String(customers.length)} />
-        <StatPill label="confirmed" value={String(statusCounts.confirmed ?? 0)} />
-        <StatPill label="ready" value={String(statusCounts.ready ?? 0)} />
+        <StatPill label={t.dashboard.stats.orders} value={String(statusCounts.total)} />
+        <StatPill label={t.dashboard.stats.customers} value={String(customers.length)} />
+        <StatPill label={t.dashboard.stats.confirmed} value={String(statusCounts.confirmed ?? 0)} />
+        <StatPill label={t.dashboard.stats.ready} value={String(statusCounts.ready ?? 0)} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <GlassCard className="p-6">
-          <h2 className="text-lg font-semibold">Today’s focus</h2>
+          <h2 className="text-lg font-semibold">{t.dashboard.todayFocus}</h2>
           <div className="mt-4 space-y-4">
             {orders.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No orders yet. Seed the demo in settings to explore a filled
-                workspace.
+                {t.dashboard.noOrders}
               </p>
             ) : (
               orders.slice(0, 4).map((order) => (
@@ -62,11 +62,11 @@ export function DashboardPage() {
                   <div>
                     <p className="font-medium">{order.orderNo}</p>
                     <p className="text-xs text-slate-500">
-                      Due {formatDate(order.dueAt)}
+                      {t.dashboard.duePrefix} {formatDate(order.dueAt)}
                     </p>
                   </div>
                   <Badge tone={order.status === "confirmed" ? "info" : "default"}>
-                    {order.status}
+                    {t.orders.statusLabels[order.status] ?? order.status}
                   </Badge>
                 </div>
               ))
@@ -75,11 +75,11 @@ export function DashboardPage() {
         </GlassCard>
 
         <GlassCard className="p-6">
-          <h2 className="text-lg font-semibold">Alerts</h2>
+          <h2 className="text-lg font-semibold">{t.dashboard.alerts}</h2>
           <div className="mt-4 space-y-3">
             {upcoming.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No due-tomorrow orders. Everything is on schedule.
+                {t.dashboard.noAlerts}
               </p>
             ) : (
               upcoming.map((order) => (
@@ -87,8 +87,10 @@ export function DashboardPage() {
                   key={order.id}
                   className="flex items-center justify-between rounded-2xl bg-amber-100/70 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/20 dark:text-amber-100"
                 >
-                  <span>{order.orderNo} due tomorrow</span>
-                  <span className="text-xs">Deposit check</span>
+                  <span>
+                    {order.orderNo} {t.dashboard.dueTomorrowSuffix}
+                  </span>
+                  <span className="text-xs">{t.dashboard.depositCheck}</span>
                 </div>
               ))
             )}

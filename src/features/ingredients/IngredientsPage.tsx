@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Ingredient } from "../../db/types";
+import { t } from "../../i18n";
 
 export function IngredientsPage() {
   const { ingredients, loadAll } = useAppStore();
@@ -34,11 +35,11 @@ export function IngredientsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ingredients"
-        description="Track ingredient costs and pricing per unit."
+        title={t.ingredients.title}
+        description={t.ingredients.description}
         action={
           <Button onClick={() => setShowForm((prev) => !prev)}>
-            {showForm ? "Close" : "Add ingredient"}
+            {showForm ? t.ingredients.actions.close : t.ingredients.actions.add}
           </Button>
         }
       />
@@ -46,45 +47,45 @@ export function IngredientsPage() {
       {showForm ? (
         <GlassCard className="p-6 space-y-3">
           <Input
-            placeholder="Ingredient name"
+            placeholder={t.ingredients.placeholders.name}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            placeholder="Unit (kg, lb, oz)"
+            placeholder={t.ingredients.placeholders.unit}
             value={unit}
             onChange={(event) => setUnit(event.target.value)}
           />
           <Input
             type="number"
             step="0.01"
-            placeholder="Price per unit"
+            placeholder={t.ingredients.placeholders.price}
             value={price}
             onChange={(event) => setPrice(Number(event.target.value))}
           />
           <Button onClick={handleSave} disabled={!name}>
-            Save ingredient
+            {t.ingredients.save}
           </Button>
         </GlassCard>
       ) : null}
 
       {ingredients.length === 0 ? (
         <EmptyState
-          title="No ingredients yet"
-          description="Add the raw materials to calculate recipe costs."
-          actionLabel="Add ingredient"
+          title={t.ingredients.empty.title}
+          description={t.ingredients.empty.description}
+          actionLabel={t.ingredients.empty.action}
           onAction={() => setShowForm(true)}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {ingredients.map((ingredient) => (
-            <GlassCard key={ingredient.id} className="p-5">
-              <h3 className="text-lg font-semibold">{ingredient.name}</h3>
-              <p className="text-sm text-slate-500">
-                {ingredient.pricePerUnit} per {ingredient.unit}
-              </p>
-            </GlassCard>
-          ))}
+              <GlassCard key={ingredient.id} className="p-5">
+                <h3 className="text-lg font-semibold">{ingredient.name}</h3>
+                <p className="text-sm text-slate-500">
+                {ingredient.pricePerUnit} {t.ingredients.per} {ingredient.unit}
+                </p>
+              </GlassCard>
+            ))}
         </div>
       )}
     </div>

@@ -8,10 +8,12 @@ import { cn } from "../../components/ui/utils";
 import { createId, createOrderNumber } from "../../utils/ids";
 import { useAppStore } from "../../store/useAppStore";
 import type { Order } from "../../db/types";
+import { t } from "../../i18n";
+import { formatCurrency } from "../../utils/currency";
 
 const schema = z.object({
-  customerName: z.string().min(2, "Customer name required"),
-  dueAt: z.string().min(1, "Due date required"),
+  customerName: z.string().min(2, t.orders.form.customerNameRequired),
+  dueAt: z.string().min(1, t.orders.form.dueDateRequired),
   status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
   pickupOrDelivery: z.enum(["pickup", "delivery"]),
   address: z.string().optional(),
@@ -23,21 +25,14 @@ const schema = z.object({
 
 export type OrderFormValues = z.infer<typeof schema>;
 
-const steps = [
-  "Customer",
-  "Details",
-  "Pricing",
-  "Payments",
-  "Checklist",
-  "References",
-];
+const steps = t.orders.form.steps;
 
 interface OrderFormProps {
   onCreated?: () => void;
 }
 
 export function OrderForm({ onCreated }: OrderFormProps) {
-  const { customers, orders, addOrder } = useAppStore();
+  const { customers, orders, addOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
   const [references, setReferences] = useState<
     { id: string; name: string; urlOrData: string }[]
@@ -68,7 +63,7 @@ export function OrderForm({ onCreated }: OrderFormProps) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 1024 * 1024) {
-      alert("Reference image must be under 1MB.");
+      alert(t.orders.form.referenceTooLarge);
       return;
     }
     const reader = new FileReader();
@@ -128,7 +123,7 @@ export function OrderForm({ onCreated }: OrderFormProps) {
         .filter(Boolean)
         .map((text) => ({ id: createId("check"), text, done: false })),
       timeline: [
-        { id: createId("time"), at: new Date().toISOString(), text: "Order created" },
+        { id: createId("time"), at: new Date().toISOString(), text: t.orders.timelineCreated },
       ],
     };
 
@@ -158,12 +153,12 @@ export function OrderForm({ onCreated }: OrderFormProps) {
 
       {step === 0 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">Customer name</label>
-          <Input placeholder="Customer name" {...register("customerName")} />
+          <label className="text-sm font-medium">{t.orders.form.customerNameLabel}</label>
+          <Input placeholder={t.orders.form.customerNamePlaceholder} {...register("customerName")} />
           {errors.customerName ? (
             <p className="text-xs text-rose-500">{errors.customerName.message}</p>
           ) : null}
-          <label className="text-sm font-medium">Due date</label>
+          <label className="text-sm font-medium">{t.orders.form.dueDateLabel}</label>
           <Input type="date" {...register("dueAt")} />
           {errors.dueAt ? (
             <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
@@ -173,40 +168,43 @@ export function OrderForm({ onCreated }: OrderFormProps) {
 
       {step === 1 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">Status</label>
+          <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
           <select
             className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
             {...register("status")}
           >
-            <option value="draft">Draft</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="in-progress">In progress</option>
-            <option value="ready">Ready</option>
-            <option value="completed">Completed</option>
+            <option value="draft">{t.orders.statusLabels.draft}</option>
+            <option value="confirmed">{t.orders.statusLabels.confirmed}</option>
+            <option value="in-progress">{t.orders.statusLabels["in-progress"]}</option>
+            <option value="ready">{t.orders.statusLabels.ready}</option>
+            <option value="completed">{t.orders.statusLabels.completed}</option>
           </select>
-          <label className="text-sm font-medium">Pickup or delivery</label>
+          <label className="text-sm font-medium">{t.orders.form.pickupOrDeliveryLabel}</label>
           <select
             className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
             {...register("pickupOrDelivery")}
           >
-            <option value="pickup">Pickup</option>
-            <option value="delivery">Delivery</option>
+            <option value="pickup">{t.orders.fulfillment.pickup}</option>
+            <option value="delivery">{t.orders.fulfillment.delivery}</option>
           </select>
-          <label className="text-sm font-medium">Address</label>
-          <Input placeholder="Delivery address" {...register("address")} />
-          <label className="text-sm font-medium">Design notes</label>
-          <Input placeholder="Palette, florals, tiers" {...register("designNotes")} />
+          <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
+          <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
+          <label className="text-sm font-medium">{t.orders.form.designNotesLabel}</label>
+          <Input placeholder={t.orders.form.designNotesPlaceholder} {...register("designNotes")} />
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">Total price</label>
+          <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
           <Input type="number" step="0.01" {...register("priceTotal")} />
-          <label className="text-sm font-medium">Deposit received</label>
+          <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
           <Input type="number" step="0.01" {...register("deposit")} />
           <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-            Remaining balance: <span className="font-semibold">${depositRemaining.toFixed(2)}</span>
+            {t.orders.form.remainingBalanceLabel}{" "}
+            <span className="font-semibold">
+              {formatCurrency(depositRemaining, settings?.currency)}
+            </span>
           </div>
         </div>
       )}
@@ -214,20 +212,20 @@ export function OrderForm({ onCreated }: OrderFormProps) {
       {step === 3 && (
         <div className="space-y-3">
           <p className="text-sm text-slate-500">
-            Add payment milestones after saving the order.
+            {t.orders.form.paymentsNote}
           </p>
           <div className="rounded-2xl border border-dashed border-slate-200/70 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700/70">
-            Payment timeline will appear here.
+            {t.orders.form.paymentsPlaceholder}
           </div>
         </div>
       )}
 
       {step === 4 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">Checklist (one per line)</label>
+          <label className="text-sm font-medium">{t.orders.form.checklistLabel}</label>
           <textarea
             className="h-32 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
-            placeholder="Sketch approval\nPurchase florals\nConfirm delivery"
+            placeholder={t.orders.form.checklistPlaceholder}
             {...register("checklist")}
           />
         </div>
@@ -261,14 +259,14 @@ export function OrderForm({ onCreated }: OrderFormProps) {
           onClick={() => setStep((prev) => Math.max(prev - 1, 0))}
           disabled={step === 0}
         >
-          Back
+          {t.orders.form.back}
         </Button>
         {step < steps.length - 1 ? (
           <Button type="button" onClick={() => setStep((prev) => prev + 1)}>
-            Next
+            {t.orders.form.next}
           </Button>
         ) : (
-          <Button type="submit">Save order</Button>
+          <Button type="submit">{t.orders.form.saveOrder}</Button>
         )}
       </div>
     </form>

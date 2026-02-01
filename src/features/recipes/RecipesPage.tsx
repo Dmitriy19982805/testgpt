@@ -9,6 +9,7 @@ import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Recipe } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
+import { t } from "../../i18n";
 
 export function RecipesPage() {
   const { recipes, ingredients, loadAll, settings } = useAppStore();
@@ -45,11 +46,11 @@ export function RecipesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Recipes"
-        description="Calculate ingredient costs and standardize your best sellers."
+        title={t.recipes.title}
+        description={t.recipes.description}
         action={
           <Button onClick={() => setShowForm((prev) => !prev)}>
-            {showForm ? "Close" : "New recipe"}
+            {showForm ? t.recipes.actions.close : t.recipes.actions.new}
           </Button>
         }
       />
@@ -57,7 +58,7 @@ export function RecipesPage() {
       {showForm ? (
         <GlassCard className="p-6 space-y-4">
           <Input
-            placeholder="Recipe name"
+            placeholder={t.recipes.placeholders.name}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -66,13 +67,13 @@ export function RecipesPage() {
             step="0.1"
             value={yieldKg}
             onChange={(event) => setYieldKg(Number(event.target.value))}
-            placeholder="Yield (kg)"
+            placeholder={t.recipes.placeholders.yield}
           />
           <div className="space-y-2">
-            <p className="text-sm font-medium">Ingredients</p>
+            <p className="text-sm font-medium">{t.recipes.ingredientsLabel}</p>
             {ingredients.length === 0 ? (
               <p className="text-sm text-slate-500">
-                Add ingredients first to build recipes.
+                {t.recipes.ingredientsEmpty}
               </p>
             ) : (
               ingredients.map((ingredient) => (
@@ -95,16 +96,16 @@ export function RecipesPage() {
             )}
           </div>
           <Button onClick={handleSave} disabled={!name}>
-            Save recipe
+            {t.recipes.save}
           </Button>
         </GlassCard>
       ) : null}
 
       {recipes.length === 0 ? (
         <EmptyState
-          title="No recipes yet"
-          description="Create standard recipes with cost breakdowns."
-          actionLabel="New recipe"
+          title={t.recipes.empty.title}
+          description={t.recipes.empty.description}
+          actionLabel={t.recipes.empty.action}
           onAction={() => setShowForm(true)}
         />
       ) : (
@@ -118,10 +119,17 @@ export function RecipesPage() {
             return (
               <GlassCard key={recipe.id} className="p-5">
                 <h3 className="text-lg font-semibold">{recipe.name}</h3>
-                <p className="text-sm text-slate-500">Yield {recipe.yieldKg} kg</p>
+                <p className="text-sm text-slate-500">
+                  {t.recipes.yieldLabel} {recipe.yieldKg} кг
+                </p>
                 <div className="mt-3 space-y-1 text-sm">
-                  <p>Ingredient cost: {formatCurrency(ingredientCost, settings?.currency)}</p>
-                  <p>Cost per kg: {formatCurrency(costPerKg, settings?.currency)}</p>
+                  <p>
+                    {t.recipes.ingredientCostLabel}{" "}
+                    {formatCurrency(ingredientCost, settings?.currency)}
+                  </p>
+                  <p>
+                    {t.recipes.costPerKgLabel} {formatCurrency(costPerKg, settings?.currency)}
+                  </p>
                 </div>
               </GlassCard>
             );

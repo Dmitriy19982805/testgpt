@@ -5,6 +5,7 @@ import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
 import { formatCurrency } from "../../utils/currency";
 import { formatDateTime } from "../../utils/date";
+import { t } from "../../i18n";
 
 export function FinancePage() {
   const { orders, settings } = useAppStore();
@@ -23,15 +24,15 @@ export function FinancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Finance"
-        description="Track payments, deposits, and estimated profit."
+        title={t.finance.title}
+        description={t.finance.description}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
         {[
-          { label: "Income", value: totals.income },
-          { label: "Expenses", value: totals.expenses },
-          { label: "Net", value: totals.net },
+          { label: t.finance.stats.income, value: totals.income },
+          { label: t.finance.stats.expenses, value: totals.expenses },
+          { label: t.finance.stats.net, value: totals.net },
         ].map((stat) => (
           <GlassCard key={stat.label} className="p-5">
             <p className="text-sm text-slate-500">{stat.label}</p>
@@ -44,12 +45,12 @@ export function FinancePage() {
 
       {payments.length === 0 ? (
         <EmptyState
-          title="No payments recorded"
-          description="Payments will appear as you log deposits and balances."
+          title={t.finance.empty.title}
+          description={t.finance.empty.description}
         />
       ) : (
         <GlassCard className="p-6">
-          <h2 className="text-lg font-semibold">Payments</h2>
+          <h2 className="text-lg font-semibold">{t.finance.paymentsTitle}</h2>
           <div className="mt-4 space-y-3">
             {payments.map((payment) => (
               <div
@@ -58,7 +59,9 @@ export function FinancePage() {
               >
                 <div>
                   <p className="font-medium">
-                    {payment.orderNo} · {payment.type}
+                    {payment.orderNo} ·{" "}
+                    {t.finance.paymentTypes[payment.type as keyof typeof t.finance.paymentTypes] ??
+                      payment.type}
                   </p>
                   <p className="text-xs text-slate-500">
                     {formatDateTime(payment.at)}

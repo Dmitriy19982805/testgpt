@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { db } from "../db";
 import type { Customer, Ingredient, Order, Recipe, Settings } from "../db/types";
 import { createId, createOrderNumber } from "../utils/ids";
+import { t } from "../i18n";
 
 interface AppState {
   customers: Customer[];
@@ -19,8 +20,8 @@ interface AppState {
 
 const defaultSettings: Settings = {
   id: "settings",
-  businessName: "Confectioner Cabinet",
-  currency: "USD",
+  businessName: t.appName,
+  currency: "RUB",
   dayCapacityRules: 5,
   defaultDepositPct: 40,
   theme: "light",
@@ -62,31 +63,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   seedDemo: async () => {
     const now = new Date();
     const customerId = createId("cust");
+    const demo = t.demo;
     const customer: Customer = {
       id: customerId,
-      name: "Sienna Harbor",
+      name: demo.customerName,
       phone: "+1 (555) 302-1988",
-      email: "sienna@example.com",
-      notes: "Prefers whipped cream filling",
-      tags: ["wedding", "vip"],
+      email: "ekaterina@example.com",
+      notes: demo.customerNotes,
+      tags: demo.customerTags,
       createdAt: now.toISOString(),
     };
     const customers: Customer[] = [customer];
     const ingredients: Ingredient[] = [
-      { id: createId("ing"), name: "Vanilla Bean", unit: "oz", pricePerUnit: 3.5 },
-      { id: createId("ing"), name: "Butter", unit: "lb", pricePerUnit: 4.2 },
-      { id: createId("ing"), name: "Flour", unit: "lb", pricePerUnit: 1.1 },
+      { id: createId("ing"), name: demo.ingredients.vanilla, unit: "кг", pricePerUnit: 3.5 },
+      { id: createId("ing"), name: demo.ingredients.butter, unit: "кг", pricePerUnit: 4.2 },
+      { id: createId("ing"), name: demo.ingredients.flour, unit: "кг", pricePerUnit: 1.1 },
     ];
     const recipes: Recipe[] = [
       {
         id: createId("rec"),
-        name: "Signature Vanilla Sponge",
+        name: demo.recipeName,
         yieldKg: 4,
         ingredients: ingredients.map((item) => ({
           ingredientId: item.id,
           qty: 0.4,
         })),
-        notes: "Whipped cream layers + lemon zest.",
+        notes: demo.recipeNotes,
       },
     ];
     const orders: Order[] = [
@@ -99,19 +101,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         customerId,
         items: [
           {
-            type: "Cake",
-            name: "2-tier vanilla",
+            type: demo.orderItemType,
+            name: demo.orderItemName,
             weightKg: 6,
             qty: 1,
-            options: ["pearl finish", "fresh florals"],
+            options: demo.orderItemOptions,
           },
         ],
-        designNotes: "Dusty rose palette, gold leaf accents.",
-        inscriptionText: "Forever starts here",
-        allergens: "Dairy, gluten",
+        designNotes: demo.designNotes,
+        inscriptionText: demo.inscriptionText,
+        allergens: demo.allergens,
         references: [],
         pickupOrDelivery: "delivery",
-        address: "17 Marina Ave, Bayview",
+        address: demo.address,
         deliveryFee: 35,
         price: { subtotal: 420, discount: 20, delivery: 35, total: 435 },
         payments: [
@@ -121,7 +123,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             amount: 150,
             at: now.toISOString(),
             method: "card",
-            note: "Paid via Square",
+            note: demo.paymentNote,
           },
         ],
         cost: {
@@ -135,11 +137,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           marginPct: 54.5,
         },
         checklist: [
-          { id: createId("check"), text: "Finalize sketch", done: true },
-          { id: createId("check"), text: "Confirm delivery window", done: false },
+          { id: createId("check"), text: demo.checklist[0], done: true },
+          { id: createId("check"), text: demo.checklist[1], done: false },
         ],
         timeline: [
-          { id: createId("time"), at: now.toISOString(), text: "Order confirmed" },
+          { id: createId("time"), at: now.toISOString(), text: demo.timelineConfirmed },
         ],
       },
     ];
