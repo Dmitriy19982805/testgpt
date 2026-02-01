@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -10,15 +11,37 @@ import { createId } from "../../utils/ids";
 import type { Recipe } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
+import { ActionSheet } from "../../components/common/ActionSheet";
 
 export function RecipesPage() {
   const { recipes, ingredients, loadAll, settings, deleteRecipe } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [actionRecipeId, setActionRecipeId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [yieldKg, setYieldKg] = useState(1);
   const [ingredientQty, setIngredientQty] = useState<Record<string, number>>({});
 
   const handleSave = async () => {
+    if (editingRecipe) {
+      const updated: Recipe = {
+        ...editingRecipe,
+        name,
+        yieldKg,
+        ingredients: Object.entries(ingredientQty)
+          .filter(([, qty]) => qty > 0)
+          .map(([ingredientId, qty]) => ({ ingredientId, qty })),
+      };
+      await db.recipes.put(updated);
+      await loadAll();
+      setName("");
+      setYieldKg(1);
+      setIngredientQty({});
+      setShowForm(false);
+      setEditingRecipe(null);
+      return;
+    }
+
     const recipe: Recipe = {
       id: createId("rec"),
       name,
@@ -44,6 +67,43 @@ export function RecipesPage() {
     await deleteRecipe(recipe.id);
   };
 
+  const handleEdit = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setName(recipe.name);
+    setYieldKg(recipe.yieldKg);
+    setIngredientQty(
+      recipe.ingredients.reduce(
+        (acc, ingredient) => ({
+          ...acc,
+          [ingredient.ingredientId]: ingredient.qty,
+        }),
+        {} as Record<string, number>
+      )
+    );
+    setShowForm(true);
+    setActionRecipeId(null);
+  };
+
+  const handleToggleForm = () => {
+    if (showForm) {
+      setShowForm(false);
+      setEditingRecipe(null);
+      setName("");
+      setYieldKg(1);
+      setIngredientQty({});
+      return;
+    }
+    setEditingRecipe(null);
+    setName("");
+    setYieldKg(1);
+    setIngredientQty({});
+    setShowForm(true);
+  };
+
+  const activeRecipe = actionRecipeId
+    ? recipes.find((recipe) => recipe.id === actionRecipeId)
+    : null;
+
   const costLookup = useMemo(() => {
     return ingredients.reduce((acc, ingredient) => {
       acc[ingredient.id] = ingredient.pricePerUnit;
@@ -57,7 +117,7 @@ export function RecipesPage() {
         title={t.recipes.title}
         description={t.recipes.description}
         action={
-          <Button onClick={() => setShowForm((prev) => !prev)}>
+          <Button onClick={handleToggleForm}>
             {showForm ? t.recipes.actions.close : t.recipes.actions.new}
           </Button>
         }
@@ -132,16 +192,17 @@ export function RecipesPage() {
                     <p className="text-sm text-slate-500">
                       {t.recipes.yieldLabel} {recipe.yieldKg} кг
                     </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-rose-500 hover:text-rose-600"
-                    onClick={() => handleDelete(recipe)}
-                  >
-                    Удалить
-                  </Button>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 rounded-full p-0"
+                  onClick={() => setActionRecipeId(recipe.id)}
+                  aria-label="Действия с рецептом"
+                >
+                  <Pencil size={16} />
+                </Button>
+              </div>
                 <div className="mt-3 space-y-1 text-sm">
                   <p>
                     {t.recipes.ingredientCostLabel}{" "}
@@ -156,6 +217,26 @@ export function RecipesPage() {
           })}
         </div>
       )}
+
+      <ActionSheet
+        open={Boolean(activeRecipe)}
+        onClose={() => setActionRecipeId(null)}
+        actions={
+          activeRecipe
+            ? [
+                { label: "Редактировать", onSelect: () => handleEdit(activeRecipe) },
+                {
+                  label: "Удалить",
+                  tone: "destructive",
+                  onSelect: async () => {
+                    setActionRecipeId(null);
+                    await handleDelete(activeRecipe);
+                  },
+                },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }
