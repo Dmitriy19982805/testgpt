@@ -11,6 +11,7 @@ export function PrintOrderPage() {
   const { orders, customers, deleteOrder } = useAppStore();
   const order = useMemo(() => orders.find((item) => item.id === id), [orders, id]);
   const customer = customers.find((c) => c.id === order?.customerId);
+  const customerName = customer?.name ?? order?.customerName ?? t.orders.walkInCustomer;
 
   const handleDelete = async () => {
     if (!order) {
@@ -63,7 +64,7 @@ export function PrintOrderPage() {
             {t.orders.print.customer}
           </h2>
           <p className="mt-2 text-lg font-medium">
-            {customer?.name ?? t.orders.walkInCustomer}
+            {customerName}
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.phone}</p>
           <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.email}</p>

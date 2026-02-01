@@ -71,6 +71,7 @@ export interface Order {
   createdAt: string;
   dueAt: string;
   customerId: string;
+  customerName: string;
   items: OrderItem[];
   designNotes: string;
   inscriptionText: string;

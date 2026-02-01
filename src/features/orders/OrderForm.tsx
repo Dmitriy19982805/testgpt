@@ -47,7 +47,9 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
   const defaultValues = useMemo(
     () => ({
       customerName:
-        customers.find((customer) => customer.id === initialOrder?.customerId)?.name ?? "",
+        initialOrder?.customerName ??
+        customers.find((customer) => customer.id === initialOrder?.customerId)?.name ??
+        "",
       dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
       status: toFormStatus(initialOrder?.status ?? "draft"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
@@ -101,7 +103,10 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
   };
 
   const onSubmit = async (values: OrderFormValues) => {
-    const customerId = customers.find((c) => c.name === values.customerName)?.id;
+    const trimmedCustomerName = values.customerName.trim();
+    const matchedCustomer = customers.find((c) => c.name === trimmedCustomerName);
+    const customerId = matchedCustomer?.id ?? "";
+    const customerName = matchedCustomer?.name ?? trimmedCustomerName;
     if (initialOrder) {
       const depositPaymentIndex = initialOrder.payments.findIndex(
         (payment) => payment.type === "deposit"
@@ -126,7 +131,8 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         ...initialOrder,
         status: values.status,
         dueAt: new Date(values.dueAt).toISOString(),
-        customerId: customerId ?? initialOrder.customerId,
+        customerId,
+        customerName,
         designNotes: values.designNotes ?? "",
         pickupOrDelivery: values.pickupOrDelivery,
         address: values.address ?? "",
@@ -154,7 +160,8 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       status: values.status,
       createdAt: new Date().toISOString(),
       dueAt: new Date(values.dueAt).toISOString(),
-      customerId: customerId ?? createId("cust"),
+      customerId,
+      customerName,
       items: [],
       designNotes: values.designNotes ?? "",
       inscriptionText: "",
