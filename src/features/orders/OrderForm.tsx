@@ -208,8 +208,14 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
     onCreated?.();
   };
 
+  const isLastStep = step === steps.length - 1;
+  const handleSave = handleSubmit((values) => {
+    const payload = isLastStep ? values : { ...values, status: "draft" as const };
+    return onSubmit(payload);
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSave} className="space-y-6">
       <div className="flex flex-wrap gap-2">
         {steps.map((label, index) => (
           <button
@@ -338,13 +344,18 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         >
           {t.orders.form.back}
         </Button>
-        {step < steps.length - 1 ? (
-          <Button type="button" onClick={() => setStep((prev) => prev + 1)}>
-            {t.orders.form.next}
-          </Button>
-        ) : (
+        <div className="flex items-center gap-2">
           <Button type="submit">{t.orders.form.saveOrder}</Button>
-        )}
+          {!isLastStep ? (
+            <Button
+              type="button"
+              variant="subtle"
+              onClick={() => setStep((prev) => prev + 1)}
+            >
+              {t.orders.form.next}
+            </Button>
+          ) : null}
+        </div>
       </div>
     </form>
   );
