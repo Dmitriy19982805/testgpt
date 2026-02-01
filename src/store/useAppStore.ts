@@ -16,6 +16,10 @@ interface AppState {
   seedDemo: () => Promise<void>;
   clearAll: () => Promise<void>;
   addOrder: (order: Order) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+  deleteRecipe: (id: string) => Promise<void>;
+  deleteIngredient: (id: string) => Promise<void>;
 }
 
 const defaultSettings: Settings = {
@@ -171,5 +175,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   addOrder: async (order) => {
     await db.orders.put(order);
     set({ orders: [...get().orders, order] });
+  },
+  deleteOrder: async (id) => {
+    await db.orders.delete(id);
+    await get().loadAll();
+  },
+  deleteCustomer: async (id) => {
+    await db.customers.delete(id);
+    await get().loadAll();
+  },
+  deleteRecipe: async (id) => {
+    await db.recipes.delete(id);
+    await get().loadAll();
+  },
+  deleteIngredient: async (id) => {
+    await db.ingredients.delete(id);
+    await get().loadAll();
   },
 }));

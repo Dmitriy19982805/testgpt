@@ -22,7 +22,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function CustomersPage() {
-  const { customers, loadAll } = useAppStore();
+  const { customers, orders, loadAll, deleteCustomer } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const {
     register,
@@ -45,6 +45,19 @@ export function CustomersPage() {
     await loadAll();
     reset();
     setShowForm(false);
+  };
+
+  const handleDelete = async (customer: Customer) => {
+    const hasOrders = orders.some((order) => order.customerId === customer.id);
+    if (hasOrders) {
+      window.alert("Нельзя удалить клиента: есть заказы, связанные с ним.");
+      return;
+    }
+    const confirmed = window.confirm(`Удалить клиента ${customer.name}?`);
+    if (!confirmed) {
+      return;
+    }
+    await deleteCustomer(customer.id);
   };
 
   return (
@@ -90,9 +103,21 @@ export function CustomersPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {customers.map((customer) => (
             <GlassCard key={customer.id} className="p-5">
-              <h3 className="text-lg font-semibold">{customer.name}</h3>
-              <p className="text-sm text-slate-500">{customer.phone}</p>
-              <p className="text-sm text-slate-500">{customer.email}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">{customer.name}</h3>
+                  <p className="text-sm text-slate-500">{customer.phone}</p>
+                  <p className="text-sm text-slate-500">{customer.email}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose-500 hover:text-rose-600"
+                  onClick={() => handleDelete(customer)}
+                >
+                  Удалить
+                </Button>
+              </div>
             </GlassCard>
           ))}
         </div>

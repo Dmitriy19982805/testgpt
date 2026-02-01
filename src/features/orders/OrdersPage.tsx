@@ -19,7 +19,7 @@ const views = ["list", "kanban", "calendar"] as const;
 type View = (typeof views)[number];
 
 export function OrdersPage() {
-  const { orders, customers, settings } = useAppStore();
+  const { orders, customers, settings, deleteOrder } = useAppStore();
   const [view, setView] = useState<View>("list");
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -41,6 +41,14 @@ export function OrdersPage() {
     const end = endOfMonth(new Date());
     return eachDayOfInterval({ start, end });
   }, []);
+
+  const handleDelete = async (id: string, orderNo: string) => {
+    const confirmed = window.confirm(`Удалить заказ ${orderNo}?`);
+    if (!confirmed) {
+      return;
+    }
+    await deleteOrder(id);
+  };
 
   return (
     <div className="space-y-6">
@@ -130,6 +138,14 @@ export function OrdersPage() {
                         {t.orders.printSummary}
                       </Button>
                     </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-rose-500 hover:text-rose-600"
+                      onClick={() => handleDelete(order.id, order.orderNo)}
+                    >
+                      Удалить
+                    </Button>
                   </div>
                 </div>
               </GlassCard>
@@ -156,7 +172,17 @@ export function OrdersPage() {
                       key={order.id}
                       className="rounded-2xl border border-slate-200/60 bg-white/70 px-3 py-2 text-sm dark:border-slate-800/60 dark:bg-slate-900/60"
                     >
-                      <p className="font-medium">{order.orderNo}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{order.orderNo}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600"
+                          onClick={() => handleDelete(order.id, order.orderNo)}
+                        >
+                          Удалить
+                        </Button>
+                      </div>
                       <p className="text-xs text-slate-500">
                         {t.orders.duePrefix} {formatDate(order.dueAt)}
                       </p>
@@ -212,7 +238,16 @@ export function OrdersPage() {
                         key={order.id}
                         className="rounded-full bg-slate-900/90 px-2 py-1 text-[10px] text-white"
                       >
-                        {order.orderNo}
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{order.orderNo}</span>
+                          <button
+                            type="button"
+                            className="text-[10px] text-rose-200 hover:text-rose-100"
+                            onClick={() => handleDelete(order.id, order.orderNo)}
+                          >
+                            Удалить
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {dueOrders.length > 2 ? (
