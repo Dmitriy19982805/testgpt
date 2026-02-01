@@ -5,14 +5,14 @@ import { Button } from "../ui/button";
 interface DrawerSheetProps {
   open: boolean;
   title: ReactNode;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   children: ReactNode;
 }
 
 const focusableSelector =
   "a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex='-1'])";
 
-export function DrawerSheet({ open, title, onClose, children }: DrawerSheetProps) {
+export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheetProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -43,7 +43,7 @@ export function DrawerSheet({ open, title, onClose, children }: DrawerSheetProps
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onOpenChange(false);
         return;
       }
 
@@ -92,7 +92,7 @@ export function DrawerSheet({ open, title, onClose, children }: DrawerSheetProps
       document.removeEventListener("keydown", handleKeyDown);
       lastFocusedRef.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open, onOpenChange]);
 
   if (!open) {
     return null;
@@ -104,7 +104,7 @@ export function DrawerSheet({ open, title, onClose, children }: DrawerSheetProps
         type="button"
         className="absolute inset-0 bg-slate-900/30"
         aria-label="Закрыть"
-        onClick={onClose}
+        onClick={() => onOpenChange(false)}
       />
       <div
         ref={panelRef}
@@ -112,13 +112,18 @@ export function DrawerSheet({ open, title, onClose, children }: DrawerSheetProps
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] md:h-full md:w-[520px] md:max-w-[520px] md:rounded-none max-h-[95vh] md:max-h-none"
+        className="glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none"
       >
         <div className="flex items-center justify-between border-b border-slate-200/60 px-6 py-4 dark:border-slate-800/60">
           <h2 id={titleId} className="text-lg font-semibold">
             {title}
           </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full px-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="rounded-full px-3"
+          >
             <X size={16} />
             Закрыть
           </Button>
