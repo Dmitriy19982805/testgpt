@@ -102,7 +102,8 @@ export const ru = {
       referenceTooLarge: "Референс должен быть меньше 1 МБ.",
       back: "Назад",
       next: "Далее",
-      saveOrder: "Сохранить заказ",
+      saveOrder: "Сохранить",
+      saveDraft: "Сохранить как черновик",
     },
     timelineCreated: "Заказ создан",
     print: {
