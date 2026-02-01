@@ -115,18 +115,36 @@ export function SettingsPage({ auth }: SettingsPageProps) {
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (€)</option>
           </select>
-          <Input
-            type="number"
-            value={capacity}
-            onChange={(event) => setCapacity(Number(event.target.value))}
-            placeholder={t.settings.placeholders.dayCapacity}
-          />
-          <Input
-            type="number"
-            value={depositPct}
-            onChange={(event) => setDepositPct(Number(event.target.value))}
-            placeholder={t.settings.placeholders.defaultDeposit}
-          />
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Максимум заказов в день</label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={capacity}
+              onChange={(event) => setCapacity(Number(event.target.value))}
+              placeholder={t.settings.placeholders.dayCapacity}
+            />
+            <p className="text-xs text-slate-500">
+              Используется для контроля загрузки календаря
+            </p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">
+              Предоплата по умолчанию (%)
+            </label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={depositPct}
+              onChange={(event) => setDepositPct(Number(event.target.value))}
+              placeholder={t.settings.placeholders.defaultDeposit}
+            />
+            <p className="text-xs text-slate-500">
+              Процент от суммы заказа, подставляется автоматически
+            </p>
+          </div>
         </div>
         <Input
           type="password"
