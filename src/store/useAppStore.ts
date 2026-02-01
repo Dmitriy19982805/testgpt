@@ -27,6 +27,7 @@ const defaultSettings: Settings = {
   id: "settings",
   businessName: t.appName,
   currency: "RUB",
+  currencyMigrated: true,
   dayCapacityRules: 5,
   defaultDepositPct: 40,
   theme: "light",
@@ -49,15 +50,30 @@ export const useAppStore = create<AppState>((set, get) => ({
         db.recipes.toArray(),
         db.settings.get("settings"),
       ]);
+    let resolvedSettings = settings ?? defaultSettings;
     if (!settings) {
       await db.settings.put(defaultSettings);
+    } else {
+      const needsCurrencyMigration =
+        !settings.currencyMigrated && (!settings.currency || settings.currency === "USD");
+      if (needsCurrencyMigration) {
+        resolvedSettings = {
+          ...settings,
+          currency: "RUB",
+          currencyMigrated: true,
+        };
+        await db.settings.put(resolvedSettings);
+      } else if (!settings.currencyMigrated) {
+        resolvedSettings = { ...settings, currencyMigrated: true };
+        await db.settings.put(resolvedSettings);
+      }
     }
     set({
       customers,
       orders,
       ingredients,
       recipes,
-      settings: settings ?? defaultSettings,
+      settings: resolvedSettings,
       isLoaded: true,
     });
   },
