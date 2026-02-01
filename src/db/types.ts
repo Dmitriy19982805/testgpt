@@ -112,6 +112,7 @@ export interface Settings {
   id: string;
   businessName: string;
   currency: string;
+  currencyMigrated?: boolean;
   dayCapacityRules: number;
   defaultDepositPct: number;
   theme: "light" | "dark";

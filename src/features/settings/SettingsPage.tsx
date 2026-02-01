@@ -16,7 +16,7 @@ interface SettingsPageProps {
 export function SettingsPage({ auth }: SettingsPageProps) {
   const { settings, saveSettings, seedDemo, clearAll, loadAll } = useAppStore();
   const [businessName, setBusinessName] = useState(settings?.businessName ?? "");
-  const [currency, setCurrency] = useState(settings?.currency ?? "USD");
+  const [currency, setCurrency] = useState(settings?.currency ?? "RUB");
   const [capacity, setCapacity] = useState(settings?.dayCapacityRules ?? 5);
   const [depositPct, setDepositPct] = useState(settings?.defaultDepositPct ?? 40);
   const [pin, setPin] = useState(settings?.pin ?? "1234");
@@ -106,11 +106,15 @@ export function SettingsPage({ auth }: SettingsPageProps) {
           placeholder={t.settings.placeholders.businessName}
         />
         <div className="grid gap-3 md:grid-cols-3">
-          <Input
+          <select
             value={currency}
             onChange={(event) => setCurrency(event.target.value)}
-            placeholder={t.settings.placeholders.currency}
-          />
+            className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+          >
+            <option value="RUB">RUB (₽)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
           <Input
             type="number"
             value={capacity}

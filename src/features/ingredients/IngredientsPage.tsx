@@ -9,11 +9,12 @@ import { useAppStore } from "../../store/useAppStore";
 import { db } from "../../db";
 import { createId } from "../../utils/ids";
 import type { Ingredient } from "../../db/types";
+import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
 
 export function IngredientsPage() {
-  const { ingredients, loadAll, deleteIngredient } = useAppStore();
+  const { ingredients, loadAll, deleteIngredient, settings } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [actionIngredientId, setActionIngredientId] = useState<string | null>(null);
@@ -146,7 +147,8 @@ export function IngredientsPage() {
                 <div>
                   <h3 className="text-lg font-semibold">{ingredient.name}</h3>
                   <p className="text-sm text-slate-500">
-                    {ingredient.pricePerUnit} {t.ingredients.per} {ingredient.unit}
+                    {formatCurrency(ingredient.pricePerUnit, settings?.currency)}{" "}
+                    {t.ingredients.per} {ingredient.unit}
                   </p>
                 </div>
                 <Button
