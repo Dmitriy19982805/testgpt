@@ -1,20 +1,20 @@
-# Confectioner Cabinet
+# Кондитерский кабинет
 
-A modern offline-first order management hub for custom cake and bakery businesses.
+Современный офлайн-кабинет для управления заказами на торты и кондитерские изделия. Интерфейс по умолчанию на русском, демо-ПИН — `1234`.
 
-## How to use
+## Как пользоваться
 
-1. **Log in**
-   - Visit `/login` and enter the demo PIN (`1234`) or the PIN saved in Settings.
-2. **Dashboard overview**
-   - Review today’s focus list, alerts, and quick stats for production.
-3. **Manage orders**
-   - Open **Orders** to create a new order with the multi-step form.
-   - Switch between list, kanban, and calendar views to track status and capacity.
-   - Use **Print summary** on any order to open the printable order sheet.
-4. **Customers, recipes, ingredients**
-   - Add customers to build a reusable contact list.
-   - Add ingredients and recipes to track ingredient costs per kg.
-5. **Finance & backups**
-   - View payments and net totals in **Finance**.
-   - Use **Settings** to toggle themes, seed demo data, and export/import JSON backups.
+1. **Вход**
+   - Откройте `/login` и введите демо-ПИН (`1234`) или ПИН из настроек.
+2. **Обзор панели**
+   - Проверьте фокус на сегодня, оповещения и ключевые показатели производства.
+3. **Управление заказами**
+   - Откройте **Заказы**, чтобы создать заказ через пошаговую форму.
+   - Переключайтесь между списком, канбаном и календарём, чтобы отслеживать статусы и загрузку.
+   - Нажмите **Печать** в карточке заказа, чтобы открыть печатную сводку.
+4. **Клиенты, рецепты, ингредиенты**
+   - Добавляйте клиентов для формирования контактной базы.
+   - Ведите ингредиенты и рецепты, чтобы считать себестоимость на кг.
+5. **Финансы и резервные копии**
+   - Просматривайте платежи и итоговые суммы в **Финансах**.
+   - В **Настройках** можно менять тему, загружать демо-данные и экспортировать/импортировать JSON-резервные копии.

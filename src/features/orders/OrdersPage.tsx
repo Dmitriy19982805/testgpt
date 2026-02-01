@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { addDays, format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { ru as ruLocale } from "date-fns/locale";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Button } from "../../components/ui/button";
@@ -11,6 +12,7 @@ import { formatDate } from "../../utils/date";
 import { OrderForm } from "./OrderForm";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
+import { t } from "../../i18n";
 
 const views = ["list", "kanban", "calendar"] as const;
 
@@ -43,11 +45,11 @@ export function OrdersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Orders"
-        description="Track production, delivery, and payments across every cake order."
+        title={t.orders.title}
+        description={t.orders.description}
         action={
           <Button onClick={() => setShowForm((prev) => !prev)}>
-            {showForm ? "Close" : "New order"}
+            {showForm ? t.orders.actions.close : t.orders.actions.new}
           </Button>
         }
       />
@@ -61,7 +63,7 @@ export function OrdersPage() {
       <GlassCard className="p-6">
         <div className="flex flex-wrap items-center gap-3">
           <Input
-            placeholder="Search order or customer"
+            placeholder={t.orders.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="max-w-xs"
@@ -71,13 +73,13 @@ export function OrdersPage() {
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="all">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="in-progress">In progress</option>
-            <option value="ready">Ready</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="all">{t.orders.statusFilterAll}</option>
+            <option value="draft">{t.orders.statusLabels.draft}</option>
+            <option value="confirmed">{t.orders.statusLabels.confirmed}</option>
+            <option value="in-progress">{t.orders.statusLabels["in-progress"]}</option>
+            <option value="ready">{t.orders.statusLabels.ready}</option>
+            <option value="completed">{t.orders.statusLabels.completed}</option>
+            <option value="cancelled">{t.orders.statusLabels.cancelled}</option>
           </select>
           <div className="ml-auto flex gap-2">
             {views.map((mode) => (
@@ -87,7 +89,7 @@ export function OrdersPage() {
                 size="sm"
                 onClick={() => setView(mode)}
               >
-                {mode}
+                {t.orders.views[mode]}
               </Button>
             ))}
           </div>
@@ -96,9 +98,9 @@ export function OrdersPage() {
 
       {orders.length === 0 ? (
         <EmptyState
-          title="No orders yet"
-          description="Start by adding your first cake order."
-          actionLabel="Create order"
+          title={t.orders.empty.title}
+          description={t.orders.empty.description}
+          actionLabel={t.orders.empty.action}
           onAction={() => setShowForm(true)}
         />
       ) : null}
@@ -113,19 +115,19 @@ export function OrdersPage() {
                   <div>
                     <p className="text-sm text-slate-500">{order.orderNo}</p>
                     <h3 className="text-lg font-semibold">
-                      {customer?.name ?? "Walk-in customer"}
+                      {customer?.name ?? t.orders.walkInCustomer}
                     </h3>
                     <p className="text-sm text-slate-500">
-                      Due {formatDate(order.dueAt)}
+                      {t.orders.duePrefix} {formatDate(order.dueAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={order.status === "ready" ? "success" : "info"}>
-                      {order.status}
+                      {t.orders.statusLabels[order.status] ?? order.status}
                     </Badge>
                     <Link to={`/app/orders/print/${order.id}`}>
                       <Button variant="outline" size="sm">
-                        Print summary
+                        {t.orders.printSummary}
                       </Button>
                     </Link>
                   </div>
@@ -139,10 +141,10 @@ export function OrdersPage() {
       {view === "kanban" && orders.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-4">
           {[
-            { label: "Draft", status: "draft" },
-            { label: "Confirmed", status: "confirmed" },
-            { label: "In progress", status: "in-progress" },
-            { label: "Ready", status: "ready" },
+            { label: t.orders.statusLabels.draft, status: "draft" },
+            { label: t.orders.statusLabels.confirmed, status: "confirmed" },
+            { label: t.orders.statusLabels["in-progress"], status: "in-progress" },
+            { label: t.orders.statusLabels.ready, status: "ready" },
           ].map((column) => (
             <GlassCard key={column.status} className="p-4">
               <h3 className="text-sm font-semibold">{column.label}</h3>
@@ -156,7 +158,7 @@ export function OrdersPage() {
                     >
                       <p className="font-medium">{order.orderNo}</p>
                       <p className="text-xs text-slate-500">
-                        Due {formatDate(order.dueAt)}
+                        {t.orders.duePrefix} {formatDate(order.dueAt)}
                       </p>
                     </div>
                   ))}
@@ -170,13 +172,16 @@ export function OrdersPage() {
         <GlassCard className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{format(new Date(), "MMMM yyyy")}</h3>
+              <h3 className="text-lg font-semibold">
+                {format(new Date(), "MMMM yyyy", { locale: ruLocale })}
+              </h3>
               <p className="text-sm text-slate-500">
-                Capacity: {settings?.dayCapacityRules ?? 0} orders/day
+                {t.orders.calendar.capacityLabel}: {settings?.dayCapacityRules ?? 0}{" "}
+                {t.orders.calendar.ordersPerDay}
               </p>
             </div>
             <Button variant="subtle" size="sm">
-              Jump to today
+              {t.orders.calendar.jumpToToday}
             </Button>
           </div>
           <div className="mt-6 grid grid-cols-7 gap-2 text-xs">
@@ -198,7 +203,7 @@ export function OrdersPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{format(day, "d")}</span>
                     {isOverCapacity ? (
-                      <span className="text-[10px] text-rose-500">Over</span>
+                      <span className="text-[10px] text-rose-500">{t.orders.calendar.over}</span>
                     ) : null}
                   </div>
                   <div className="mt-2 space-y-1">
@@ -212,7 +217,7 @@ export function OrdersPage() {
                     ))}
                     {dueOrders.length > 2 ? (
                       <span className="text-[10px] text-slate-400">
-                        +{dueOrders.length - 2} more
+                        +{dueOrders.length - 2} {t.orders.calendar.more}
                       </span>
                     ) : null}
                   </div>

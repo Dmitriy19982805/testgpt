@@ -1,19 +1,20 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { Home, Notebook, Users, CakeSlice, Package, Wallet, Settings } from "lucide-react";
 import { cn } from "../components/ui/utils";
+import { t } from "../i18n";
 
 interface AppShellProps {
   auth: { logout: () => void };
 }
 
 const navItems = [
-  { to: "/app/dashboard", label: "Dashboard", icon: Home },
-  { to: "/app/orders", label: "Orders", icon: Notebook },
-  { to: "/app/customers", label: "Customers", icon: Users },
-  { to: "/app/recipes", label: "Recipes", icon: CakeSlice },
-  { to: "/app/ingredients", label: "Ingredients", icon: Package },
-  { to: "/app/finance", label: "Finance", icon: Wallet },
-  { to: "/app/settings", label: "Settings", icon: Settings },
+  { to: "/app/dashboard", label: t.nav.dashboard, icon: Home },
+  { to: "/app/orders", label: t.nav.orders, icon: Notebook },
+  { to: "/app/customers", label: t.nav.customers, icon: Users },
+  { to: "/app/recipes", label: t.nav.recipes, icon: CakeSlice },
+  { to: "/app/ingredients", label: t.nav.ingredients, icon: Package },
+  { to: "/app/finance", label: t.nav.finance, icon: Wallet },
+  { to: "/app/settings", label: t.nav.settings, icon: Settings },
 ];
 
 export function AppShell({ auth }: AppShellProps) {
@@ -23,8 +24,8 @@ export function AppShell({ auth }: AppShellProps) {
         <aside className="hidden w-64 flex-col border-r border-slate-200/60 bg-white/70 px-5 py-8 backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-950/70 md:flex">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-widest text-slate-400">Cabinet</p>
-              <h2 className="text-xl font-semibold">Confectioner</h2>
+              <p className="text-xs uppercase tracking-widest text-slate-400">{t.appShell.cabinet}</p>
+              <h2 className="text-xl font-semibold">{t.appShell.confectioner}</h2>
             </div>
           </div>
           <nav className="mt-8 flex flex-1 flex-col gap-2">
@@ -50,7 +51,7 @@ export function AppShell({ auth }: AppShellProps) {
             onClick={auth.logout}
             className="mt-auto rounded-2xl border border-slate-200/70 px-4 py-3 text-sm text-slate-500 transition hover:bg-slate-100 dark:border-slate-700/70 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            Log out
+            {t.appShell.logout}
           </button>
         </aside>
 

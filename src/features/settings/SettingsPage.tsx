@@ -7,6 +7,7 @@ import { Switch } from "../../components/ui/switch";
 import { useAppStore } from "../../store/useAppStore";
 import { db } from "../../db";
 import type { Settings } from "../../db/types";
+import { t } from "../../i18n";
 
 interface SettingsPageProps {
   auth: { logout: () => void };
@@ -55,7 +56,7 @@ export function SettingsPage({ auth }: SettingsPageProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "confectioner-backup.json";
+    link.download = t.settings.backup.fileName;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -87,81 +88,81 @@ export function SettingsPage({ auth }: SettingsPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Settings"
-        description="Business profile, theme, and backup controls."
+        title={t.settings.title}
+        description={t.settings.description}
       />
 
       <GlassCard className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Dark mode</p>
-            <p className="text-xs text-slate-500">Toggle glass theme.</p>
+            <p className="text-sm font-medium">{t.settings.theme.label}</p>
+            <p className="text-xs text-slate-500">{t.settings.theme.hint}</p>
           </div>
           <Switch checked={settings?.theme === "dark"} onClick={handleThemeToggle} />
         </div>
         <Input
           value={businessName}
           onChange={(event) => setBusinessName(event.target.value)}
-          placeholder="Business name"
+          placeholder={t.settings.placeholders.businessName}
         />
         <div className="grid gap-3 md:grid-cols-3">
           <Input
             value={currency}
             onChange={(event) => setCurrency(event.target.value)}
-            placeholder="Currency"
+            placeholder={t.settings.placeholders.currency}
           />
           <Input
             type="number"
             value={capacity}
             onChange={(event) => setCapacity(Number(event.target.value))}
-            placeholder="Day capacity"
+            placeholder={t.settings.placeholders.dayCapacity}
           />
           <Input
             type="number"
             value={depositPct}
             onChange={(event) => setDepositPct(Number(event.target.value))}
-            placeholder="Default deposit %"
+            placeholder={t.settings.placeholders.defaultDeposit}
           />
         </div>
         <Input
           type="password"
           value={pin}
           onChange={(event) => setPin(event.target.value)}
-          placeholder="Admin pin"
+          placeholder={t.settings.placeholders.adminPin}
         />
         <div className="flex flex-wrap gap-3">
-          <Button onClick={handleSave}>Save settings</Button>
+          <Button onClick={handleSave}>{t.settings.actions.save}</Button>
           <Button variant="outline" onClick={auth.logout}>
-            Log out
+            {t.settings.actions.logout}
           </Button>
         </div>
       </GlassCard>
 
       <div className="grid gap-4 md:grid-cols-2">
         <GlassCard className="p-6 space-y-3">
-          <h3 className="text-lg font-semibold">Demo data</h3>
+          <h3 className="text-lg font-semibold">{t.settings.demo.title}</h3>
           <p className="text-sm text-slate-500">
-            Load a sample bakery workspace to explore the UI.
+            {t.settings.demo.description}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={seedDemo}>Seed demo data</Button>
+            <Button onClick={seedDemo}>{t.settings.demo.seed}</Button>
             <Button variant="ghost" onClick={clearAll}>
-              Clear data
+              {t.settings.demo.clear}
             </Button>
           </div>
         </GlassCard>
 
         <GlassCard className="p-6 space-y-3">
-          <h3 className="text-lg font-semibold">Backup</h3>
+          <h3 className="text-lg font-semibold">{t.settings.backup.title}</h3>
           <p className="text-sm text-slate-500">
-            Export your local cabinet or import a backup JSON file.
+            {t.settings.backup.description}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={handleExport}>
-              Export JSON
+              {t.settings.backup.export}
             </Button>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200/70 px-4 py-2 text-sm dark:border-slate-700/70">
-              Import JSON
+              {t.settings.backup.import}
               <input type="file" accept="application/json" className="hidden" onChange={handleImport} />
             </label>
           </div>

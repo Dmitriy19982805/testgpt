@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { GlassCard } from "../components/common/GlassCard";
 import { useAppStore } from "../store/useAppStore";
+import { t } from "../i18n";
 
 interface LoginPageProps {
   auth: { login: () => void };
@@ -21,7 +22,7 @@ export function LoginPage({ auth }: LoginPageProps) {
       auth.login();
       navigate("/app/dashboard");
     } else {
-      setError("Invalid pin. Try 1234 for the demo.");
+      setError(t.login.invalidPin);
     }
   };
 
@@ -30,19 +31,19 @@ export function LoginPage({ auth }: LoginPageProps) {
       <GlassCard className="w-full max-w-md p-8">
         <div className="space-y-2 text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Confectioner Cabinet
+            {t.appName}
           </p>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
-            Welcome back
+            {t.login.welcome}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Enter your admin pin to unlock your order room.
+            {t.login.subtitle}
           </p>
         </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Input
             type="password"
-            placeholder="PIN"
+            placeholder={t.login.pinPlaceholder}
             value={pin}
             onChange={(event) => setPin(event.target.value)}
           />
@@ -50,7 +51,7 @@ export function LoginPage({ auth }: LoginPageProps) {
             <p className="text-xs text-rose-500">{error}</p>
           ) : null}
           <Button type="submit" className="w-full">
-            Unlock workspace
+            {t.login.unlock}
           </Button>
         </form>
       </GlassCard>
