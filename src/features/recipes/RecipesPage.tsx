@@ -12,7 +12,7 @@ import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 
 export function RecipesPage() {
-  const { recipes, ingredients, loadAll, settings } = useAppStore();
+  const { recipes, ingredients, loadAll, settings, deleteRecipe } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [yieldKg, setYieldKg] = useState(1);
@@ -34,6 +34,14 @@ export function RecipesPage() {
     setYieldKg(1);
     setIngredientQty({});
     setShowForm(false);
+  };
+
+  const handleDelete = async (recipe: Recipe) => {
+    const confirmed = window.confirm(`Удалить рецепт ${recipe.name}?`);
+    if (!confirmed) {
+      return;
+    }
+    await deleteRecipe(recipe.id);
   };
 
   const costLookup = useMemo(() => {
@@ -118,10 +126,22 @@ export function RecipesPage() {
             const costPerKg = ingredientCost / Math.max(recipe.yieldKg, 1);
             return (
               <GlassCard key={recipe.id} className="p-5">
-                <h3 className="text-lg font-semibold">{recipe.name}</h3>
-                <p className="text-sm text-slate-500">
-                  {t.recipes.yieldLabel} {recipe.yieldKg} кг
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold">{recipe.name}</h3>
+                    <p className="text-sm text-slate-500">
+                      {t.recipes.yieldLabel} {recipe.yieldKg} кг
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-500 hover:text-rose-600"
+                    onClick={() => handleDelete(recipe)}
+                  >
+                    Удалить
+                  </Button>
+                </div>
                 <div className="mt-3 space-y-1 text-sm">
                   <p>
                     {t.recipes.ingredientCostLabel}{" "}

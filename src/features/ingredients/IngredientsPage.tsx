@@ -11,7 +11,7 @@ import type { Ingredient } from "../../db/types";
 import { t } from "../../i18n";
 
 export function IngredientsPage() {
-  const { ingredients, loadAll } = useAppStore();
+  const { ingredients, loadAll, deleteIngredient } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("kg");
@@ -30,6 +30,14 @@ export function IngredientsPage() {
     setUnit("kg");
     setPrice(0);
     setShowForm(false);
+  };
+
+  const handleDelete = async (ingredient: Ingredient) => {
+    const confirmed = window.confirm(`Удалить ингредиент ${ingredient.name}?`);
+    if (!confirmed) {
+      return;
+    }
+    await deleteIngredient(ingredient.id);
   };
 
   return (
@@ -79,13 +87,25 @@ export function IngredientsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {ingredients.map((ingredient) => (
-              <GlassCard key={ingredient.id} className="p-5">
-                <h3 className="text-lg font-semibold">{ingredient.name}</h3>
-                <p className="text-sm text-slate-500">
-                {ingredient.pricePerUnit} {t.ingredients.per} {ingredient.unit}
-                </p>
-              </GlassCard>
-            ))}
+            <GlassCard key={ingredient.id} className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">{ingredient.name}</h3>
+                  <p className="text-sm text-slate-500">
+                    {ingredient.pricePerUnit} {t.ingredients.per} {ingredient.unit}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose-500 hover:text-rose-600"
+                  onClick={() => handleDelete(ingredient)}
+                >
+                  Удалить
+                </Button>
+              </div>
+            </GlassCard>
+          ))}
         </div>
       )}
     </div>

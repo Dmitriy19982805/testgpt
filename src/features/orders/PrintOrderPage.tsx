@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
@@ -7,9 +7,22 @@ import { t } from "../../i18n";
 
 export function PrintOrderPage() {
   const { id } = useParams();
-  const { orders, customers } = useAppStore();
+  const navigate = useNavigate();
+  const { orders, customers, deleteOrder } = useAppStore();
   const order = useMemo(() => orders.find((item) => item.id === id), [orders, id]);
   const customer = customers.find((c) => c.id === order?.customerId);
+
+  const handleDelete = async () => {
+    if (!order) {
+      return;
+    }
+    const confirmed = window.confirm(`Удалить заказ ${order.orderNo}?`);
+    if (!confirmed) {
+      return;
+    }
+    await deleteOrder(order.id);
+    navigate("/app/orders");
+  };
 
   if (!order) {
     return (
@@ -31,9 +44,18 @@ export function PrintOrderPage() {
           </p>
           <h1 className="text-2xl font-semibold">{order.orderNo}</h1>
         </div>
-        <Button variant="outline" onClick={() => window.print()}>
-          {t.orders.print.print}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => window.print()}>
+            {t.orders.print.print}
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-rose-500 hover:text-rose-600"
+            onClick={handleDelete}
+          >
+            Удалить
+          </Button>
+        </div>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
