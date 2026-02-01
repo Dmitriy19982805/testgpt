@@ -51,7 +51,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         customers.find((customer) => customer.id === initialOrder?.customerId)?.name ??
         "",
       dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
-      status: toFormStatus(initialOrder?.status ?? "draft"),
+      status: toFormStatus(initialOrder?.status ?? "confirmed"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
       address: initialOrder?.address ?? "",
       designNotes: initialOrder?.designNotes ?? "",
@@ -209,10 +209,10 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
   };
 
   const isLastStep = step === steps.length - 1;
-  const handleSave = handleSubmit((values) => {
-    const payload = isLastStep ? values : { ...values, status: "draft" as const };
-    return onSubmit(payload);
-  });
+  const handleSave = handleSubmit((values) => onSubmit(values));
+  const handleSaveDraft = handleSubmit((values) =>
+    onSubmit({ ...values, status: "draft" })
+  );
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -345,11 +345,16 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
           {t.orders.form.back}
         </Button>
         <div className="flex items-center gap-2">
-          <Button type="submit">{t.orders.form.saveOrder}</Button>
+          <Button type="button" variant="subtle" onClick={handleSaveDraft}>
+            {t.orders.form.saveDraft}
+          </Button>
+          <Button type="submit" variant={isLastStep ? "default" : "subtle"}>
+            {t.orders.form.saveOrder}
+          </Button>
           {!isLastStep ? (
             <Button
               type="button"
-              variant="subtle"
+              variant="default"
               onClick={() => setStep((prev) => prev + 1)}
             >
               {t.orders.form.next}
