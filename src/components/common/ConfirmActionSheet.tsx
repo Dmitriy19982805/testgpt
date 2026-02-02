@@ -121,13 +121,13 @@ export function ConfirmActionSheet({
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-[240ms] ease-out " +
+          "fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-[240ms] ease-out " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
         onClick={handleClose}
       />
-      <div className="relative w-full max-w-md px-4 pb-6">
+      <div className="relative z-[60] w-full max-w-md px-4 pb-6">
         <div
           role="dialog"
           aria-modal="true"

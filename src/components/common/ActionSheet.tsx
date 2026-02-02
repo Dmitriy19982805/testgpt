@@ -28,11 +28,11 @@ export function ActionSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
+        className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm"
         aria-label="Закрыть"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md px-4 pb-6">
+      <div className="relative z-[60] w-full max-w-md px-4 pb-6">
         <div className="glass-card overflow-hidden rounded-[28px]">
           <div className="divide-y divide-slate-200/70 text-center text-sm dark:divide-slate-800/70">
             {actions.map((action, index) => (

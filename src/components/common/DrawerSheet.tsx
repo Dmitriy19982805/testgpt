@@ -170,7 +170,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/30 transition-opacity duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-50 bg-slate-900/30 transition-opacity duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
@@ -183,7 +183,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
         aria-labelledby={titleId}
         tabIndex={-1}
         className={
-          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none origin-bottom md:origin-right " +
+          "glass-card relative z-[60] flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none origin-bottom md:origin-right " +
           (isActive
             ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
             : "translate-y-full md:translate-x-full opacity-0 scale-[0.98]")
