@@ -4,7 +4,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
 import { formatDate } from "../../utils/date";
 import { t } from "../../i18n";
-import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { OriginModal } from "../../components/common/OriginModal";
 
 export function PrintOrderPage() {
   const { id } = useParams();
@@ -14,6 +14,7 @@ export function PrintOrderPage() {
   const customer = customers.find((c) => c.id === order?.customerId);
   const customerName = customer?.name ?? order?.customerName ?? t.orders.walkInCustomer;
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
 
   const handleDelete = async () => {
     if (!order) {
@@ -50,7 +51,10 @@ export function PrintOrderPage() {
           <Button
             variant="ghost"
             className="text-rose-500 hover:text-rose-600"
-            onClick={() => setConfirmOpen(true)}
+            onClick={(event) => {
+              setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+              setConfirmOpen(true);
+            }}
           >
             Удалить
           </Button>
@@ -108,12 +112,32 @@ export function PrintOrderPage() {
         </ul>
       </div>
 
-      <ConfirmModal
+      <OriginModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
+        originRect={deleteOriginRect}
         title="Удалить заказ?"
         description="Это действие нельзя отменить."
-        onConfirm={handleDelete}
+        variant="danger"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+              onClick={handleDelete}
+            >
+              Удалить
+            </Button>
+          </>
+        }
       />
     </div>
   );

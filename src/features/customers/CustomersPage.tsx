@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -7,13 +7,13 @@ import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
 import type { Customer, Order } from "../../db/types";
 import { t } from "../../i18n";
-import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { CustomerForm } from "./CustomerForm";
 import { OrderForm } from "../orders/OrderForm";
 import { formatDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/currency";
-import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { CenterModal } from "../../components/common/CenterModal";
+import { OriginModal } from "../../components/common/OriginModal";
 
 export function CustomersPage() {
   const { customers, orders, settings, deleteCustomer } = useAppStore();
@@ -21,20 +21,21 @@ export function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [actionCustomerId, setActionCustomerId] = useState<string | null>(null);
-  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmCustomer, setConfirmCustomer] = useState<Customer | null>(null);
+  const [detailsCustomer, setDetailsCustomer] = useState<Customer | null>(null);
+  const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
+  const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [blockedDeleteOpen, setBlockedDeleteOpen] = useState(false);
 
   const handleDelete = async (customer: Customer) => {
     const hasOrders = orders.some((order) => order.customerId === customer.id);
     if (hasOrders) {
-      window.alert("Нельзя удалить клиента: есть связанные заказы.");
+      setBlockedDeleteOpen(true);
       return;
     }
     setConfirmCustomer(customer);
     setConfirmOpen(true);
-    setActionCustomerId(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -47,7 +48,6 @@ export function CustomersPage() {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setShowForm(true);
-    setActionCustomerId(null);
   };
 
   const openNewCustomer = () => {
@@ -68,10 +68,6 @@ export function CustomersPage() {
     openNewCustomer();
   };
 
-  const activeCustomer = actionCustomerId
-    ? customers.find((customer) => customer.id === actionCustomerId)
-    : null;
-  const activeAnchor = actionCustomerId ? actionButtonRefs.current[actionCustomerId] : null;
   const customerOrders = useMemo(() => {
     if (!editingCustomer) {
       return [];
@@ -98,20 +94,27 @@ export function CustomersPage() {
         title={t.customers.title}
         description={t.customers.description}
         action={
-          <Button onClick={handleToggleForm}>
+          <Button
+            onClick={(event) => {
+              setFormOriginRect(event.currentTarget.getBoundingClientRect());
+              handleToggleForm();
+            }}
+          >
             {showForm ? t.customers.actions.close : t.customers.actions.add}
           </Button>
         }
       />
 
-      <DrawerSheet
+      <OriginModal
         open={showForm}
         onOpenChange={(open) => {
           if (!open) {
             closeForm();
           }
         }}
+        originRect={formOriginRect}
         title={editingCustomer ? "Редактирование клиента" : "Новый клиент"}
+        footer={null}
       >
         <div className="space-y-6">
           <CustomerForm
@@ -166,7 +169,7 @@ export function CustomersPage() {
             </div>
           ) : null}
         </div>
-      </DrawerSheet>
+      </OriginModal>
 
       <DrawerSheet
         open={showOrderForm}
@@ -190,7 +193,11 @@ export function CustomersPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {customers.map((customer) => (
-            <GlassCard key={customer.id} className="p-5">
+            <GlassCard
+              key={customer.id}
+              className="cursor-pointer p-5 transition hover:border-slate-300/70"
+              onClick={() => setDetailsCustomer(customer)}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">{customer.name}</h3>
@@ -200,45 +207,76 @@ export function CustomersPage() {
                     </p>
                   ) : null}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-full p-0"
-                  ref={(node) => {
-                    actionButtonRefs.current[customer.id] = node;
-                  }}
-                  onClick={() => setActionCustomerId(customer.id)}
-                  aria-label="Действия с клиентом"
-                >
-                  <Pencil size={16} />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-full p-0"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setFormOriginRect(event.currentTarget.getBoundingClientRect());
+                      handleEdit(customer);
+                    }}
+                    aria-label="Редактировать клиента"
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                      void handleDelete(customer);
+                    }}
+                    aria-label="Удалить клиента"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
               </div>
             </GlassCard>
           ))}
         </div>
       )}
 
-      <ActionMenu
-        open={Boolean(activeCustomer)}
-        anchorEl={activeAnchor}
+      <CenterModal
+        open={Boolean(detailsCustomer)}
         onOpenChange={(open) => {
           if (!open) {
-            setActionCustomerId(null);
+            setDetailsCustomer(null);
           }
         }}
-        onEdit={() => {
-          if (activeCustomer) {
-            handleEdit(activeCustomer);
-          }
-        }}
-        onDelete={() => {
-          if (activeCustomer) {
-            void handleDelete(activeCustomer);
-          }
-        }}
-      />
+        title={detailsCustomer?.name ?? "Клиент"}
+        description="Детали клиента"
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 rounded-2xl"
+            onClick={() => setDetailsCustomer(null)}
+          >
+            Закрыть
+          </Button>
+        }
+      >
+        {detailsCustomer ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-200">
+            <div className="space-y-1">
+              <p className="text-xs uppercase text-slate-400">Контакты</p>
+              <p>{detailsCustomer.phone || "—"}</p>
+              <p>{detailsCustomer.secondaryContact || detailsCustomer.email || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase text-slate-400">Заметки</p>
+              <p>{detailsCustomer.notes || "—"}</p>
+            </div>
+          </div>
+        ) : null}
+      </CenterModal>
 
-      <ConfirmModal
+      <OriginModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);
@@ -246,9 +284,46 @@ export function CustomersPage() {
             setConfirmCustomer(null);
           }
         }}
+        originRect={deleteOriginRect}
         title="Удалить клиента?"
         description="Это действие нельзя отменить."
-        onConfirm={handleConfirmDelete}
+        variant="danger"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+              onClick={handleConfirmDelete}
+            >
+              Удалить
+            </Button>
+          </>
+        }
+      />
+
+      <CenterModal
+        open={blockedDeleteOpen}
+        onOpenChange={setBlockedDeleteOpen}
+        title="Удаление недоступно"
+        description="Нельзя удалить клиента: есть связанные заказы."
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 rounded-2xl"
+            onClick={() => setBlockedDeleteOpen(false)}
+          >
+            Понятно
+          </Button>
+        }
       />
     </div>
   );

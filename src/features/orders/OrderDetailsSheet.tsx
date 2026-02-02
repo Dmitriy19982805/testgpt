@@ -1,6 +1,6 @@
 import { Badge } from "../../components/ui/badge";
+import { CenterModal } from "../../components/common/CenterModal";
 import { Button } from "../../components/ui/button";
-import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { formatCurrency } from "../../utils/currency";
 import { formatDateTime } from "../../utils/date";
 import { t } from "../../i18n";
@@ -11,7 +11,6 @@ interface OrderDetailsSheetProps {
   open: boolean;
   order: Order | null;
   onOpenChange: (open: boolean) => void;
-  onEdit: (order: Order) => void;
 }
 
 const statusToneMap: Record<Order["status"], "default" | "success" | "warning" | "info"> = {
@@ -32,7 +31,7 @@ const valueOrDash = (value?: string | number | null) => {
   return value;
 };
 
-export function OrderDetailsSheet({ open, order, onOpenChange, onEdit }: OrderDetailsSheetProps) {
+export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsSheetProps) {
   const { customers, settings } = useAppStore();
 
   if (!order) {
@@ -58,12 +57,22 @@ export function OrderDetailsSheet({ open, order, onOpenChange, onEdit }: OrderDe
   const references = order.references ?? [];
 
   return (
-    <DrawerSheet
+    <CenterModal
       open={open}
       onOpenChange={onOpenChange}
       title="Детали заказа"
+      footer={
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1 rounded-2xl"
+          onClick={() => onOpenChange(false)}
+        >
+          Закрыть
+        </Button>
+      }
     >
-      <div className="space-y-6">
+      <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-2">
         <div className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -220,20 +229,7 @@ export function OrderDetailsSheet({ open, order, onOpenChange, onEdit }: OrderDe
             </div>
           )}
         </section>
-
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="subtle"
-            onClick={() => onOpenChange(false)}
-          >
-            Закрыть
-          </Button>
-          <Button type="button" onClick={() => onEdit(order)}>
-            Редактировать
-          </Button>
-        </div>
       </div>
-    </DrawerSheet>
+    </CenterModal>
   );
 }

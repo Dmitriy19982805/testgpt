@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ru as ruLocale } from "date-fns/locale";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Button } from "../../components/ui/button";
@@ -14,11 +14,10 @@ import { OrderForm } from "./OrderForm";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
 import { t } from "../../i18n";
-import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { formatCurrency } from "../../utils/currency";
 import type { Order } from "../../db/types";
-import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { OriginModal } from "../../components/common/OriginModal";
 import { OrderDetailsSheet } from "./OrderDetailsSheet";
 
 const views = ["list", "kanban", "calendar"] as const;
@@ -30,14 +29,13 @@ export function OrdersPage() {
   const [view, setView] = useState<View>("list");
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [actionOrderId, setActionOrderId] = useState<string | null>(null);
-  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [dayOrdersOpen, setDayOrdersOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
+  const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -82,7 +80,6 @@ export function OrdersPage() {
   const openDeleteConfirm = (order: Order) => {
     setConfirmOrder(order);
     setConfirmOpen(true);
-    setActionOrderId(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -92,26 +89,16 @@ export function OrdersPage() {
     await deleteOrder(confirmOrder.id);
   };
 
-  const activeOrder = actionOrderId ? orders.find((order) => order.id === actionOrderId) : null;
-  const activeAnchor = actionOrderId ? actionButtonRefs.current[actionOrderId] : null;
-
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
     setShowForm(true);
     setDayOrdersOpen(false);
-    setActionOrderId(null);
   };
 
   const openDetails = (order: Order) => {
     setDetailsOrder(order);
     setDetailsOpen(true);
     setDayOrdersOpen(false);
-  };
-
-  const handleEditFromDetails = (order: Order) => {
-    setDetailsOpen(false);
-    setDetailsOrder(null);
-    handleEdit(order);
   };
 
   const closeForm = () => {
@@ -195,11 +182,18 @@ export function OrdersPage() {
               const customerLabel =
                 customer?.name ?? order.customerName ?? t.orders.walkInCustomer;
               return (
-                <button
+                <div
                   key={order.id}
-                  type="button"
                   onClick={() => openDetails(order)}
                   className="glass-card flex w-full flex-wrap items-center justify-between gap-4 p-4 text-left transition hover:border-slate-300/70 hover:bg-white/90 dark:hover:border-slate-700/70"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openDetails(order);
+                    }
+                  }}
                 >
                   <div className="space-y-1">
                     <p className="text-base font-semibold">{customerLabel}</p>
@@ -215,8 +209,33 @@ export function OrdersPage() {
                     <span className="text-sm font-semibold">
                       {formatCurrency(order.price.total ?? 0, settings?.currency ?? "RUB")}
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 rounded-full p-0"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleEdit(order);
+                      }}
+                      aria-label="Редактировать заказ"
+                    >
+                      <Pencil size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                        openDeleteConfirm(order);
+                      }}
+                      aria-label="Удалить заказ"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -232,7 +251,6 @@ export function OrdersPage() {
             setDetailsOrder(null);
           }
         }}
-        onEdit={handleEditFromDetails}
       />
 
       <GlassCard className="p-6">
@@ -286,7 +304,11 @@ export function OrdersPage() {
             const customer = customers.find((c) => c.id === order.customerId);
             const customerLabel = customer?.name ?? order.customerName ?? t.orders.walkInCustomer;
             return (
-              <GlassCard key={order.id} className="p-5">
+              <GlassCard
+                key={order.id}
+                className="cursor-pointer p-5 transition hover:border-slate-300/70"
+                onClick={() => openDetails(order)}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-slate-500">{order.orderNo}</p>
@@ -296,30 +318,46 @@ export function OrdersPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                  <Badge tone={order.status === "ready" ? "success" : "info"}>
-                    {t.orders.statusLabels[order.status] ?? order.status}
-                  </Badge>
-                  <Link to={`/app/orders/print/${order.id}`}>
-                    <Button variant="outline" size="sm">
-                      {t.orders.printSummary}
+                    <Badge tone={order.status === "ready" ? "success" : "info"}>
+                      {t.orders.statusLabels[order.status] ?? order.status}
+                    </Badge>
+                    <Link
+                      to={`/app/orders/print/${order.id}`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Button variant="outline" size="sm">
+                        {t.orders.printSummary}
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 rounded-full p-0"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleEdit(order);
+                      }}
+                      aria-label="Редактировать заказ"
+                    >
+                      <Pencil size={16} />
                     </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 w-9 rounded-full p-0"
-                    ref={(node) => {
-                      actionButtonRefs.current[order.id] = node;
-                    }}
-                    onClick={() => setActionOrderId(order.id)}
-                    aria-label="Действия с заказом"
-                  >
-                    <Pencil size={16} />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                        openDeleteConfirm(order);
+                      }}
+                      aria-label="Удалить заказ"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </GlassCard>
-          );
+              </GlassCard>
+            );
           })}
         </div>
       ) : null}
@@ -341,21 +379,45 @@ export function OrdersPage() {
                     <div
                       key={order.id}
                       className="rounded-2xl border border-slate-200/60 bg-white/70 px-3 py-2 text-sm dark:border-slate-800/60 dark:bg-slate-900/60"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDetails(order)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openDetails(order);
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium">{order.orderNo}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 rounded-full p-0"
-                          ref={(node) => {
-                            actionButtonRefs.current[order.id] = node;
-                          }}
-                          onClick={() => setActionOrderId(order.id)}
-                          aria-label="Действия с заказом"
-                        >
-                          <Pencil size={14} />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 rounded-full p-0"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleEdit(order);
+                            }}
+                            aria-label="Редактировать заказ"
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                              openDeleteConfirm(order);
+                            }}
+                            aria-label="Удалить заказ"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-xs text-slate-500">
                         {t.orders.duePrefix} {formatDate(order.dueAt)}
@@ -427,10 +489,12 @@ export function OrdersPage() {
                             className="text-[10px] text-rose-200 hover:text-rose-100"
                             onClick={(event) => {
                               event.stopPropagation();
+                              setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
                               openDeleteConfirm(order);
                             }}
+                            aria-label="Удалить заказ"
                           >
-                            Удалить
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
@@ -448,27 +512,7 @@ export function OrdersPage() {
         </GlassCard>
       ) : null}
 
-      <ActionMenu
-        open={Boolean(activeOrder)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setActionOrderId(null);
-          }
-        }}
-        anchorEl={activeAnchor}
-        onEdit={() => {
-          if (activeOrder) {
-            handleEdit(activeOrder);
-          }
-        }}
-        onDelete={() => {
-          if (activeOrder) {
-            openDeleteConfirm(activeOrder);
-          }
-        }}
-      />
-
-      <ConfirmModal
+      <OriginModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);
@@ -476,9 +520,29 @@ export function OrdersPage() {
             setConfirmOrder(null);
           }
         }}
+        originRect={deleteOriginRect}
         title="Удалить заказ?"
         description="Это действие нельзя отменить."
-        onConfirm={handleConfirmDelete}
+        variant="danger"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+              onClick={handleConfirmDelete}
+            >
+              Удалить
+            </Button>
+          </>
+        }
       />
     </div>
   );
