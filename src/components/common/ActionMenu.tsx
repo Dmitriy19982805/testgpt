@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ActionSheet } from "./ActionSheet";
 import { cn } from "../ui/utils";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface ActionMenuLabels {
   edit?: ReactNode;
@@ -32,6 +33,10 @@ export function ActionMenu({
   const [isDesktop, setIsDesktop] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, ready: false });
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(open);
+  const [isClosing, setIsClosing] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const transitionDuration = prefersReducedMotion ? 0 : 240;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -47,6 +52,49 @@ export function ActionMenu({
     mediaQuery.addListener(update);
     return () => mediaQuery.removeListener(update);
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true);
+      setIsClosing(false);
+      return;
+    }
+
+    if (isVisible) {
+      setIsClosing(true);
+      const timer = window.setTimeout(() => {
+        setIsVisible(false);
+        setIsClosing(false);
+      }, transitionDuration);
+      return () => window.clearTimeout(timer);
+    }
+  }, [open, isVisible, transitionDuration]);
+
+  useEffect(() => {
+    if (!open || !isDesktop) {
+      return;
+    }
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (menuRef.current?.contains(target)) {
+        return;
+      }
+      if (anchorEl?.contains(target as Node)) {
+        return;
+      }
+      onOpenChange(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [open, isDesktop, anchorEl, onOpenChange]);
 
   const updatePosition = () => {
     if (!anchorEl) {
@@ -91,7 +139,7 @@ export function ActionMenu({
     };
   }, [open, isDesktop, anchorEl]);
 
-  if (!open) {
+  if (!isVisible) {
     return null;
   }
 
@@ -127,39 +175,36 @@ export function ActionMenu({
     return null;
   }
 
+  const isActive = open && !isClosing;
+  const isReady = position.ready && isActive;
+
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="Закрыть"
-        onClick={() => onOpenChange(false)}
-      />
-      <div
-        ref={menuRef}
-        className={cn(
-          "fixed min-w-[180px] transition-opacity",
-          position.ready ? "opacity-100" : "opacity-0"
-        )}
-        style={{ top: position.top, left: position.left }}
-      >
-        <div className="glass-card rounded-2xl border border-white/40 shadow-[0_10px_30px_rgba(15,23,42,0.12)] dark:border-slate-800/70">
-          <div className="py-1 text-sm">
-            <button
-              type="button"
-              className="w-full px-4 py-2.5 text-left font-medium text-slate-700 transition hover:bg-white/50 dark:text-slate-100 dark:hover:bg-slate-800/50"
-              onClick={handleEdit}
-            >
-              {labels?.edit ?? "Редактировать"}
-            </button>
-            <button
-              type="button"
-              className="w-full px-4 py-2.5 text-left font-medium text-rose-500 transition hover:bg-white/50 hover:text-rose-600 dark:hover:bg-slate-800/50"
-              onClick={handleDelete}
-            >
-              {labels?.delete ?? "Удалить"}
-            </button>
-          </div>
+    <div
+      ref={menuRef}
+      className={cn(
+        "fixed z-50 min-w-[180px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0",
+        isReady
+          ? "opacity-100 translate-y-0 scale-100"
+          : "opacity-0 translate-y-2 scale-[0.98]"
+      )}
+      style={{ top: position.top, left: position.left }}
+    >
+      <div className="glass-card rounded-2xl border border-white/40 shadow-[0_10px_30px_rgba(15,23,42,0.12)] dark:border-slate-800/70">
+        <div className="py-1 text-sm">
+          <button
+            type="button"
+            className="w-full px-4 py-2.5 text-left font-medium text-slate-700 transition hover:bg-white/50 dark:text-slate-100 dark:hover:bg-slate-800/50"
+            onClick={handleEdit}
+          >
+            {labels?.edit ?? "Редактировать"}
+          </button>
+          <button
+            type="button"
+            className="w-full px-4 py-2.5 text-left font-medium text-rose-500 transition hover:bg-white/50 hover:text-rose-600 dark:hover:bg-slate-800/50"
+            onClick={handleDelete}
+          >
+            {labels?.delete ?? "Удалить"}
+          </button>
         </div>
       </div>
     </div>
