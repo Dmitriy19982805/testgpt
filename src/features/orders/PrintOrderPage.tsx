@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
 import { formatDate } from "../../utils/date";
 import { t } from "../../i18n";
+import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
 
 export function PrintOrderPage() {
   const { id } = useParams();
@@ -12,13 +13,10 @@ export function PrintOrderPage() {
   const order = useMemo(() => orders.find((item) => item.id === id), [orders, id]);
   const customer = customers.find((c) => c.id === order?.customerId);
   const customerName = customer?.name ?? order?.customerName ?? t.orders.walkInCustomer;
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!order) {
-      return;
-    }
-    const confirmed = window.confirm(`Удалить заказ ${order.orderNo}?`);
-    if (!confirmed) {
       return;
     }
     await deleteOrder(order.id);
@@ -52,7 +50,7 @@ export function PrintOrderPage() {
           <Button
             variant="ghost"
             className="text-rose-500 hover:text-rose-600"
-            onClick={handleDelete}
+            onClick={() => setConfirmOpen(true)}
           >
             Удалить
           </Button>
@@ -109,6 +107,14 @@ export function PrintOrderPage() {
           )}
         </ul>
       </div>
+
+      <ConfirmActionSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Удалить заказ?"
+        description="Это действие нельзя отменить."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { formatCurrency } from "../../utils/currency";
 import type { Order } from "../../db/types";
+import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
 
 const views = ["list", "kanban", "calendar"] as const;
 
@@ -34,6 +35,8 @@ export function OrdersPage() {
   const [query, setQuery] = useState("");
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [dayOrdersOpen, setDayOrdersOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
 
   const filtered = useMemo(() => {
     return orders.filter((order) => {
@@ -73,12 +76,17 @@ export function OrdersPage() {
 
   const selectedDayDate = selectedDay ? new Date(`${selectedDay}T00:00:00`) : null;
 
-  const handleDelete = async (id: string, orderNo: string) => {
-    const confirmed = window.confirm(`Удалить заказ ${orderNo}?`);
-    if (!confirmed) {
+  const openDeleteConfirm = (order: Order) => {
+    setConfirmOrder(order);
+    setConfirmOpen(true);
+    setActionOrderId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmOrder) {
       return;
     }
-    await deleteOrder(id);
+    await deleteOrder(confirmOrder.id);
   };
 
   const activeOrder = actionOrderId ? orders.find((order) => order.id === actionOrderId) : null;
@@ -398,7 +406,7 @@ export function OrdersPage() {
                             className="text-[10px] text-rose-200 hover:text-rose-100"
                             onClick={(event) => {
                               event.stopPropagation();
-                              void handleDelete(order.id, order.orderNo);
+                              openDeleteConfirm(order);
                             }}
                           >
                             Удалить
@@ -434,9 +442,22 @@ export function OrdersPage() {
         }}
         onDelete={() => {
           if (activeOrder) {
-            void handleDelete(activeOrder.id, activeOrder.orderNo);
+            openDeleteConfirm(activeOrder);
           }
         }}
+      />
+
+      <ConfirmActionSheet
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setConfirmOrder(null);
+          }
+        }}
+        title="Удалить заказ?"
+        description="Это действие нельзя отменить."
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
