@@ -40,7 +40,16 @@ interface OrderFormProps {
   initialOrder?: Order | null;
 }
 
-export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps) {
+interface OrderFormContentProps extends OrderFormProps {
+  className?: string;
+}
+
+export function OrderFormContent({
+  onCreated,
+  onUpdated,
+  initialOrder,
+  className,
+}: OrderFormContentProps) {
   const { customers, orders, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
   const [references, setReferences] = useState<
@@ -254,9 +263,12 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
     setValue("customerId", "", { shouldValidate: false });
   };
 
+  const sectionClass =
+    "rounded-3xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60";
+
   return (
-    <form onSubmit={handleSave} className="space-y-6">
-      <div className="flex flex-wrap gap-2">
+    <form onSubmit={handleSave} className={cn("space-y-4", className)}>
+      <div className={cn("flex flex-wrap gap-2", sectionClass)}>
         {steps.map((label, index) => (
           <button
             key={label}
@@ -275,7 +287,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       </div>
 
       {step === 0 && (
-        <div className="space-y-3">
+        <div className={cn("space-y-3", sectionClass)}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="text-sm font-medium">Клиент</label>
             <Button type="button" variant="subtle" onClick={() => setShowCustomerForm(true)}>
@@ -327,7 +339,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       )}
 
       {step === 1 && (
-        <div className="space-y-3">
+        <div className={cn("space-y-3", sectionClass)}>
           <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
           <select
             className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
@@ -355,7 +367,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       )}
 
       {step === 2 && (
-        <div className="space-y-3">
+        <div className={cn("space-y-3", sectionClass)}>
           <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
           <Input type="number" step="0.01" {...register("priceTotal")} />
           <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
@@ -370,7 +382,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       )}
 
       {step === 3 && (
-        <div className="space-y-3">
+        <div className={cn("space-y-3", sectionClass)}>
           <p className="text-sm text-slate-500">
             {t.orders.form.paymentsNote}
           </p>
@@ -381,7 +393,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       )}
 
       {step === 4 && (
-        <div className="space-y-3">
+        <div className={cn("space-y-3", sectionClass)}>
           <label className="text-sm font-medium">{t.orders.form.checklistLabel}</label>
           <textarea
             className="h-32 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
@@ -392,7 +404,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
       )}
 
       {step === 5 && (
-        <div className="space-y-4">
+        <div className={cn("space-y-4", sectionClass)}>
           <input type="file" accept="image/*" onChange={handleFile} />
           <div className="grid gap-3 sm:grid-cols-2">
             {references.map((ref) => (
@@ -412,7 +424,7 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className={cn("flex flex-wrap items-center justify-between gap-3", sectionClass)}>
         <Button
           type="button"
           variant="ghost"
@@ -457,5 +469,15 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
         />
       </DrawerSheet>
     </form>
+  );
+}
+
+export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps) {
+  return (
+    <OrderFormContent
+      onCreated={onCreated}
+      onUpdated={onUpdated}
+      initialOrder={initialOrder}
+    />
   );
 }
