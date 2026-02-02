@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -16,6 +16,36 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
   const panelRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const [isVisible, setIsVisible] = useState(open);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true);
+      setIsClosing(false);
+      return;
+    }
+
+    if (isVisible) {
+      setIsClosing(true);
+      const timer = window.setTimeout(() => {
+        setIsVisible(false);
+        setIsClosing(false);
+      }, 240);
+      return () => window.clearTimeout(timer);
+    }
+  }, [open, isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isVisible]);
 
   useEffect(() => {
     if (!open) {
@@ -23,9 +53,6 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
     }
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     const focusPanel = () => {
       const panel = panelRef.current;
       if (!panel) {
@@ -88,21 +115,25 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
 
     return () => {
       window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
       lastFocusedRef.current?.focus();
     };
   }, [open, onOpenChange]);
 
-  if (!open) {
+  if (!isVisible) {
     return null;
   }
+
+  const isActive = open && !isClosing;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-stretch md:justify-end">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/30"
+        className={
+          "absolute inset-0 bg-slate-900/30 transition-opacity duration-[240ms] ease-out " +
+          (isActive ? "opacity-100" : "opacity-0")
+        }
         aria-label="Закрыть"
         onClick={() => onOpenChange(false)}
       />
@@ -112,7 +143,12 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none"
+        className={
+          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-transform duration-[240ms] ease-out md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none " +
+          (isActive
+            ? "translate-y-0 md:translate-x-0"
+            : "translate-y-full md:translate-x-full")
+        }
       >
         <div className="flex items-center justify-between border-b border-slate-200/60 px-6 py-4 dark:border-slate-800/60">
           <h2 id={titleId} className="text-lg font-semibold">

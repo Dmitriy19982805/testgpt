@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { addDays, format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ru as ruLocale } from "date-fns/locale";
 import { Pencil } from "lucide-react";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
+import { formatCurrency } from "../../utils/currency";
 import type { Order } from "../../db/types";
 
 const views = ["list", "kanban", "calendar"] as const;
@@ -31,6 +32,8 @@ export function OrdersPage() {
   const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [selectedDay, setSelectedDay] = useState<string>("");
+  const [dayOrdersOpen, setDayOrdersOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return orders.filter((order) => {
@@ -50,6 +53,26 @@ export function OrdersPage() {
     return eachDayOfInterval({ start, end });
   }, []);
 
+  const toLocalDateKey = (value: Date | string) => {
+    if (typeof value === "string" && value.length === 10) {
+      return format(new Date(`${value}T00:00:00`), "yyyy-MM-dd");
+    }
+    return format(new Date(value), "yyyy-MM-dd");
+  };
+
+  const selectedDayOrders = useMemo(() => {
+    if (!selectedDay) {
+      return [];
+    }
+    return orders.filter((order) => toLocalDateKey(order.dueAt) === selectedDay);
+  }, [orders, selectedDay]);
+
+  const selectedDayTotal = useMemo(() => {
+    return selectedDayOrders.reduce((sum, order) => sum + (order.price.total ?? 0), 0);
+  }, [selectedDayOrders]);
+
+  const selectedDayDate = selectedDay ? new Date(`${selectedDay}T00:00:00`) : null;
+
   const handleDelete = async (id: string, orderNo: string) => {
     const confirmed = window.confirm(`Удалить заказ ${orderNo}?`);
     if (!confirmed) {
@@ -64,6 +87,7 @@ export function OrdersPage() {
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
     setShowForm(true);
+    setDayOrdersOpen(false);
     setActionOrderId(null);
   };
 
@@ -83,6 +107,15 @@ export function OrdersPage() {
       return;
     }
     openNewOrder();
+  };
+
+  const openDayOrders = (dayKey: string) => {
+    const dayHasOrders = orders.some((order) => toLocalDateKey(order.dueAt) === dayKey);
+    if (!dayHasOrders) {
+      return;
+    }
+    setSelectedDay(dayKey);
+    setDayOrdersOpen(true);
   };
 
   return (
@@ -111,6 +144,66 @@ export function OrdersPage() {
           onCreated={closeForm}
           onUpdated={closeForm}
         />
+      </DrawerSheet>
+
+      <DrawerSheet
+        open={dayOrdersOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDayOrdersOpen(false);
+          }
+        }}
+        title={
+          selectedDayDate
+            ? `Заказы на ${format(selectedDayDate, "d MMMM yyyy", { locale: ruLocale })}`
+            : "Заказы"
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+            <span>Всего: {selectedDayOrders.length}</span>
+            <span>
+              На сумму: {formatCurrency(selectedDayTotal, settings?.currency ?? "RUB")}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {selectedDayOrders.map((order) => {
+              const customer = customers.find((c) => c.id === order.customerId);
+              const customerLabel =
+                customer?.name ?? order.customerName ?? t.orders.walkInCustomer;
+              return (
+                <GlassCard
+                  key={order.id}
+                  className="flex flex-wrap items-center justify-between gap-4 p-4"
+                >
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold">{customerLabel}</p>
+                    <p className="text-xs text-slate-500">
+                      {order.orderNo} •{" "}
+                      {format(new Date(order.dueAt), "d MMM, HH:mm", { locale: ruLocale })}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge tone={order.status === "ready" ? "success" : "info"}>
+                      {t.orders.statusLabels[order.status] ?? order.status}
+                    </Badge>
+                    <span className="text-sm font-semibold">
+                      {formatCurrency(order.price.total ?? 0, settings?.currency ?? "RUB")}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(order)}
+                      className="rounded-full px-3"
+                    >
+                      Открыть
+                    </Button>
+                  </div>
+                </GlassCard>
+              );
+            })}
+          </div>
+        </div>
       </DrawerSheet>
 
       <GlassCard className="p-6">
@@ -264,9 +357,8 @@ export function OrdersPage() {
           </div>
           <div className="mt-6 grid grid-cols-7 gap-2 text-xs">
             {calendarDays.map((day) => {
-              const dueOrders = orders.filter(
-                (order) => format(new Date(order.dueAt), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
-              );
+              const dayKey = format(day, "yyyy-MM-dd");
+              const dueOrders = orders.filter((order) => toLocalDateKey(order.dueAt) === dayKey);
               const isOverCapacity =
                 (settings?.dayCapacityRules ?? 0) > 0 &&
                 dueOrders.length > (settings?.dayCapacityRules ?? 0);
@@ -277,6 +369,15 @@ export function OrdersPage() {
                     "rounded-2xl border border-slate-200/60 bg-white/70 p-2 dark:border-slate-800/60 dark:bg-slate-900/60",
                     isOverCapacity && "border-rose-300/60"
                   )}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openDayOrders(dayKey)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openDayOrders(dayKey);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{format(day, "d")}</span>
@@ -295,7 +396,10 @@ export function OrdersPage() {
                           <button
                             type="button"
                             className="text-[10px] text-rose-200 hover:text-rose-100"
-                            onClick={() => handleDelete(order.id, order.orderNo)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDelete(order.id, order.orderNo);
+                            }}
                           >
                             Удалить
                           </button>
