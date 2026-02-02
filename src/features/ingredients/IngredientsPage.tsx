@@ -27,6 +27,7 @@ export function IngredientsPage() {
   const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
   const [blockedDeleteOpen, setBlockedDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSave = async () => {
     if (editingIngredient) {
@@ -76,7 +77,15 @@ export function IngredientsPage() {
     if (!confirmIngredient) {
       return;
     }
-    await deleteIngredient(confirmIngredient.id);
+    setIsDeleting(true);
+    try {
+      await deleteIngredient(confirmIngredient.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setConfirmIngredient(null);
+      setDeleteOriginRect(null);
+    }
   };
 
   const handleEdit = (ingredient: Ingredient) => {
@@ -281,6 +290,7 @@ export function IngredientsPage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -288,8 +298,9 @@ export function IngredientsPage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }

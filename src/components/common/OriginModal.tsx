@@ -177,16 +177,15 @@ export function OriginModal({
   const activeTransform = "translate(0px, 0px) scale(1)";
 
   return (
-    <>
+    <div className="fixed inset-0 z-50" onClick={handleClose}>
       <div
         className={
-          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-hidden="true"
-        onClick={handleClose}
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="relative flex h-full w-full items-center justify-center p-6">
         <div
           ref={modalRef}
           role="dialog"
@@ -203,6 +202,7 @@ export function OriginModal({
             transform: prefersReducedMotion ? activeTransform : isActive ? activeTransform : inactiveTransform,
             opacity: isActive ? 1 : 0,
           }}
+          onClick={(event) => event.stopPropagation()}
         >
           <div className="space-y-1">
             <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
@@ -226,6 +226,6 @@ export function OriginModal({
           {footer ? <div className="mt-6 flex w-full shrink-0 gap-3">{footer}</div> : null}
         </div>
       </div>
-    </>
+    </div>
   );
 }

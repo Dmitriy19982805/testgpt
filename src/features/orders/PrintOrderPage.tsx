@@ -15,13 +15,21 @@ export function PrintOrderPage() {
   const customerName = customer?.name ?? order?.customerName ?? t.orders.walkInCustomer;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     if (!order) {
       return;
     }
-    await deleteOrder(order.id);
-    navigate("/app/orders");
+    setIsDeleting(true);
+    try {
+      await deleteOrder(order.id);
+      navigate("/app/orders");
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setDeleteOriginRect(null);
+    }
   };
 
   if (!order) {
@@ -126,6 +134,7 @@ export function PrintOrderPage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -133,8 +142,9 @@ export function PrintOrderPage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }

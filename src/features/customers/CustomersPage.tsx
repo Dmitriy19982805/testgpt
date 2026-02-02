@@ -27,6 +27,7 @@ export function CustomersPage() {
   const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
   const [blockedDeleteOpen, setBlockedDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async (customer: Customer) => {
     const hasOrders = orders.some((order) => order.customerId === customer.id);
@@ -42,7 +43,15 @@ export function CustomersPage() {
     if (!confirmCustomer) {
       return;
     }
-    await deleteCustomer(confirmCustomer.id);
+    setIsDeleting(true);
+    try {
+      await deleteCustomer(confirmCustomer.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setConfirmCustomer(null);
+      setDeleteOriginRect(null);
+    }
   };
 
   const handleEdit = (customer: Customer) => {
@@ -295,6 +304,7 @@ export function CustomersPage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -302,8 +312,9 @@ export function CustomersPage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }
