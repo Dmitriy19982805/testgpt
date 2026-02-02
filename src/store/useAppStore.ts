@@ -29,7 +29,6 @@ const defaultSettings: Settings = {
   currency: "RUB",
   currencyMigrated: true,
   dayCapacityRules: 5,
-  defaultDepositPct: 40,
   theme: "light",
   pin: "1234",
 };
