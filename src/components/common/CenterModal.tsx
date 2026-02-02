@@ -126,7 +126,7 @@ export function CenterModal({
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
@@ -139,7 +139,7 @@ export function CenterModal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={
-          "glass-card relative w-full max-w-[520px] rounded-2xl border border-white/40 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center " +
+          "glass-card relative z-[60] w-full max-w-[520px] rounded-2xl border border-white/40 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center " +
           (isActive ? "opacity-100 scale-100" : "opacity-0 scale-[0.96]")
         }
       >
