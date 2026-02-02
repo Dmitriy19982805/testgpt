@@ -30,7 +30,7 @@ export function ConfirmModal({
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(open);
-  const [isActive, setIsActive] = useState(false);
+  const [isShown, setIsShown] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const transitionDuration = prefersReducedMotion ? 0 : 200;
   const modalRef = useRef<HTMLDivElement | null>(null);
@@ -52,18 +52,18 @@ export function ConfirmModal({
     if (open) {
       setIsVisible(true);
       if (prefersReducedMotion) {
-        setIsActive(true);
+        setIsShown(true);
         return;
       }
-      setIsActive(false);
+      setIsShown(false);
       const frame = window.requestAnimationFrame(() => {
-        setIsActive(true);
+        setIsShown(true);
       });
       return () => window.cancelAnimationFrame(frame);
     }
 
     if (isVisible) {
-      setIsActive(false);
+      setIsShown(false);
       if (prefersReducedMotion) {
         setIsVisible(false);
       }
@@ -107,10 +107,17 @@ export function ConfirmModal({
     if (!isVisible) {
       return;
     }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    const previousPaddingRight = root.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - root.clientWidth;
+    root.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      root.style.paddingRight = `${scrollbarWidth}px`;
+    }
     return () => {
-      document.body.style.overflow = previousOverflow;
+      root.style.overflow = previousOverflow;
+      root.style.paddingRight = previousPaddingRight;
     };
   }, [isVisible]);
 
@@ -120,9 +127,10 @@ export function ConfirmModal({
     }
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null;
-    const frame = window.requestAnimationFrame(() => {
-      cancelButtonRef.current?.focus();
-    });
+    const focusDelay = prefersReducedMotion ? 0 : transitionDuration;
+    const focusTimeout = window.setTimeout(() => {
+      cancelButtonRef.current?.focus({ preventScroll: true });
+    }, focusDelay);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -135,11 +143,11 @@ export function ConfirmModal({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.cancelAnimationFrame(frame);
+      window.clearTimeout(focusTimeout);
       document.removeEventListener("keydown", handleKeyDown);
       lastFocusedRef.current?.focus();
     };
-  }, [open, onOpenChange, isLoading]);
+  }, [open, onOpenChange, isLoading, prefersReducedMotion, transitionDuration]);
 
   if (!isVisible) {
     return null;
@@ -177,7 +185,7 @@ export function ConfirmModal({
         type="button"
         className={
           "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[180ms] ease-out motion-reduce:transition-none motion-reduce:duration-0 " +
-          (isActive ? "opacity-100" : "opacity-0")
+          (isShown ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
         onClick={handleClose}
@@ -189,8 +197,8 @@ export function ConfirmModal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={
-          "glass-card relative z-[60] w-full max-w-md rounded-2xl border border-white/40 px-6 py-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center " +
-          (isActive
+          "glass-card relative z-[60] min-h-[160px] w-[min(520px,92vw)] rounded-2xl border border-white/40 px-6 py-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center will-change-[transform,opacity] " +
+          (isShown
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-[0.96] translate-y-2")
         }
