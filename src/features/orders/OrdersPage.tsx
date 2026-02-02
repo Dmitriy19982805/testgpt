@@ -170,14 +170,16 @@ export function OrdersPage() {
           }}
           originRect={formOriginRect}
           title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
+          className="flex h-[min(720px,86vh)] w-[min(760px,92vw)] max-w-none flex-col"
+          contentClassName="flex min-h-0 flex-1 flex-col"
         >
-          <div className="max-h-[75vh] overflow-y-auto pr-1">
-            <OrderFormContent
-              initialOrder={editingOrder}
-              onCreated={closeForm}
-              onUpdated={closeForm}
-            />
-          </div>
+          <OrderFormContent
+            initialOrder={editingOrder}
+            onCreated={closeForm}
+            onUpdated={closeForm}
+            layout="modal"
+            className="min-h-0 flex-1"
+          />
         </OriginModal>
       ) : (
         <DrawerSheet

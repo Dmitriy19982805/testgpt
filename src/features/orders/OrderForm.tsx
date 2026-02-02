@@ -42,6 +42,7 @@ interface OrderFormProps {
 
 interface OrderFormContentProps extends OrderFormProps {
   className?: string;
+  layout?: "default" | "modal";
 }
 
 export function OrderFormContent({
@@ -49,6 +50,7 @@ export function OrderFormContent({
   onUpdated,
   initialOrder,
   className,
+  layout = "default",
 }: OrderFormContentProps) {
   const { customers, orders, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
@@ -266,9 +268,17 @@ export function OrderFormContent({
   const sectionClass =
     "rounded-3xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60";
 
+  const isModalLayout = layout === "modal";
+
   return (
-    <form onSubmit={handleSave} className={cn("space-y-4", className)}>
-      <div className={cn("flex flex-wrap gap-2", sectionClass)}>
+    <form
+      onSubmit={handleSave}
+      className={cn(
+        isModalLayout ? "flex h-full min-h-0 flex-col gap-4" : "space-y-4",
+        className
+      )}
+    >
+      <div className={cn("flex flex-wrap gap-2", sectionClass, isModalLayout && "shrink-0")}>
         {steps.map((label, index) => (
           <button
             key={label}
@@ -286,145 +296,166 @@ export function OrderFormContent({
         ))}
       </div>
 
-      {step === 0 && (
-        <div className={cn("space-y-3", sectionClass)}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <label className="text-sm font-medium">Клиент</label>
-            <Button type="button" variant="subtle" onClick={() => setShowCustomerForm(true)}>
-              Новый клиент
-            </Button>
-          </div>
-          <div className="relative">
-            <Input
-              placeholder="Начните вводить имя..."
-              value={customerQuery}
-              onChange={(event) => handleCustomerInputChange(event.target.value)}
-              onFocus={() => setIsCustomerListOpen(true)}
-              onBlur={() => {
-                window.setTimeout(() => setIsCustomerListOpen(false), 120);
-              }}
-            />
-            {isCustomerListOpen && filteredCustomers.length > 0 ? (
-              <div className="absolute z-10 mt-2 w-full rounded-2xl border border-slate-200/70 bg-white/95 p-2 text-sm shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/95">
-                {filteredCustomers.map((customer) => (
-                  <button
-                    key={customer.id}
-                    type="button"
-                    className="w-full rounded-2xl px-3 py-2 text-left transition hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onClick={() => handleSelectCustomer({ id: customer.id, name: customer.name })}
+      <div
+        className={cn(
+          isModalLayout ? "min-h-0 flex-1 overflow-y-auto pr-1" : "space-y-4"
+        )}
+      >
+        <div className={cn(isModalLayout && "space-y-4")}>
+          {step === 0 && (
+            <div className={cn("space-y-3", sectionClass)}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-medium">Клиент</label>
+                <Button type="button" variant="subtle" onClick={() => setShowCustomerForm(true)}>
+                  Новый клиент
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  placeholder="Начните вводить имя..."
+                  value={customerQuery}
+                  onChange={(event) => handleCustomerInputChange(event.target.value)}
+                  onFocus={() => setIsCustomerListOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsCustomerListOpen(false), 120);
+                  }}
+                />
+                {isCustomerListOpen && filteredCustomers.length > 0 ? (
+                  <div className="absolute z-10 mt-2 w-full rounded-2xl border border-slate-200/70 bg-white/95 p-2 text-sm shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/95">
+                    {filteredCustomers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className="w-full rounded-2xl px-3 py-2 text-left transition hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
+                        onClick={() =>
+                          handleSelectCustomer({ id: customer.id, name: customer.name })
+                        }
+                      >
+                        <p className="font-medium">{customer.name}</p>
+                        {customer.phone || customer.secondaryContact ? (
+                          <p className="text-xs text-slate-500">
+                            {[customer.phone, customer.secondaryContact]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              {errors.customerName ? (
+                <p className="text-xs text-rose-500">{errors.customerName.message}</p>
+              ) : null}
+              <label className="text-sm font-medium">{t.orders.form.dueDateLabel}</label>
+              <Input type="date" {...register("dueAt")} />
+              {errors.dueAt ? (
+                <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
+              ) : null}
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className={cn("space-y-3", sectionClass)}>
+              <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
+              <select
+                className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                {...register("status")}
+              >
+                <option value="draft">{t.orders.statusLabels.draft}</option>
+                <option value="confirmed">{t.orders.statusLabels.confirmed}</option>
+                <option value="in-progress">{t.orders.statusLabels["in-progress"]}</option>
+                <option value="ready">{t.orders.statusLabels.ready}</option>
+                <option value="completed">{t.orders.statusLabels.completed}</option>
+              </select>
+              <label className="text-sm font-medium">
+                {t.orders.form.pickupOrDeliveryLabel}
+              </label>
+              <select
+                className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                {...register("pickupOrDelivery")}
+              >
+                <option value="pickup">{t.orders.fulfillment.pickup}</option>
+                <option value="delivery">{t.orders.fulfillment.delivery}</option>
+              </select>
+              <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
+              <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
+              <label className="text-sm font-medium">{t.orders.form.designNotesLabel}</label>
+              <Input
+                placeholder={t.orders.form.designNotesPlaceholder}
+                {...register("designNotes")}
+              />
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className={cn("space-y-3", sectionClass)}>
+              <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
+              <Input type="number" step="0.01" {...register("priceTotal")} />
+              <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
+              <Input type="number" step="0.01" {...register("deposit")} />
+              <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                {t.orders.form.remainingBalanceLabel}{" "}
+                <span className="font-semibold">
+                  {formatCurrency(depositRemaining, settings?.currency)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className={cn("space-y-3", sectionClass)}>
+              <p className="text-sm text-slate-500">{t.orders.form.paymentsNote}</p>
+              <div className="rounded-2xl border border-dashed border-slate-200/70 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700/70">
+                {t.orders.form.paymentsPlaceholder}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className={cn("space-y-3", sectionClass)}>
+              <label className="text-sm font-medium">{t.orders.form.checklistLabel}</label>
+              <textarea
+                className="h-32 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                placeholder={t.orders.form.checklistPlaceholder}
+                {...register("checklist")}
+              />
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className={cn("space-y-4", sectionClass)}>
+              <input type="file" accept="image/*" onChange={handleFile} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {references.map((ref) => (
+                  <div
+                    key={ref.id}
+                    className="rounded-2xl border border-slate-200/70 bg-white/70 p-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/70"
                   >
-                    <p className="font-medium">{customer.name}</p>
-                    {customer.phone || customer.secondaryContact ? (
-                      <p className="text-xs text-slate-500">
-                        {[customer.phone, customer.secondaryContact].filter(Boolean).join(" · ")}
-                      </p>
-                    ) : null}
-                  </button>
+                    <img
+                      src={ref.urlOrData}
+                      alt={ref.name}
+                      className="h-28 w-full rounded-xl object-cover"
+                    />
+                    <p className="mt-2 truncate text-xs text-slate-500">{ref.name}</p>
+                  </div>
                 ))}
               </div>
-            ) : null}
-          </div>
-          {errors.customerName ? (
-            <p className="text-xs text-rose-500">{errors.customerName.message}</p>
-          ) : null}
-          <label className="text-sm font-medium">{t.orders.form.dueDateLabel}</label>
-          <Input type="date" {...register("dueAt")} />
-          {errors.dueAt ? (
-            <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
-          ) : null}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {step === 1 && (
-        <div className={cn("space-y-3", sectionClass)}>
-          <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
-          <select
-            className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
-            {...register("status")}
-          >
-            <option value="draft">{t.orders.statusLabels.draft}</option>
-            <option value="confirmed">{t.orders.statusLabels.confirmed}</option>
-            <option value="in-progress">{t.orders.statusLabels["in-progress"]}</option>
-            <option value="ready">{t.orders.statusLabels.ready}</option>
-            <option value="completed">{t.orders.statusLabels.completed}</option>
-          </select>
-          <label className="text-sm font-medium">{t.orders.form.pickupOrDeliveryLabel}</label>
-          <select
-            className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
-            {...register("pickupOrDelivery")}
-          >
-            <option value="pickup">{t.orders.fulfillment.pickup}</option>
-            <option value="delivery">{t.orders.fulfillment.delivery}</option>
-          </select>
-          <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
-          <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
-          <label className="text-sm font-medium">{t.orders.form.designNotesLabel}</label>
-          <Input placeholder={t.orders.form.designNotesPlaceholder} {...register("designNotes")} />
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className={cn("space-y-3", sectionClass)}>
-          <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
-          <Input type="number" step="0.01" {...register("priceTotal")} />
-          <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
-          <Input type="number" step="0.01" {...register("deposit")} />
-          <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-            {t.orders.form.remainingBalanceLabel}{" "}
-            <span className="font-semibold">
-              {formatCurrency(depositRemaining, settings?.currency)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className={cn("space-y-3", sectionClass)}>
-          <p className="text-sm text-slate-500">
-            {t.orders.form.paymentsNote}
-          </p>
-          <div className="rounded-2xl border border-dashed border-slate-200/70 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700/70">
-            {t.orders.form.paymentsPlaceholder}
-          </div>
-        </div>
-      )}
-
-      {step === 4 && (
-        <div className={cn("space-y-3", sectionClass)}>
-          <label className="text-sm font-medium">{t.orders.form.checklistLabel}</label>
-          <textarea
-            className="h-32 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
-            placeholder={t.orders.form.checklistPlaceholder}
-            {...register("checklist")}
-          />
-        </div>
-      )}
-
-      {step === 5 && (
-        <div className={cn("space-y-4", sectionClass)}>
-          <input type="file" accept="image/*" onChange={handleFile} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {references.map((ref) => (
-              <div
-                key={ref.id}
-                className="rounded-2xl border border-slate-200/70 bg-white/70 p-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/70"
-              >
-                <img
-                  src={ref.urlOrData}
-                  alt={ref.name}
-                  className="h-28 w-full rounded-xl object-cover"
-                />
-                <p className="mt-2 truncate text-xs text-slate-500">{ref.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className={cn("flex flex-wrap items-center justify-between gap-3", sectionClass)}>
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-3",
+          sectionClass,
+          isModalLayout && "shrink-0"
+        )}
+      >
         <Button
           type="button"
           variant="ghost"
