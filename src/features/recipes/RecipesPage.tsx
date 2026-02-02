@@ -13,6 +13,7 @@ import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
+import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
 
 export function RecipesPage() {
   const { recipes, ingredients, loadAll, settings, deleteRecipe } = useAppStore();
@@ -23,6 +24,8 @@ export function RecipesPage() {
   const [name, setName] = useState("");
   const [yieldKg, setYieldKg] = useState(1);
   const [ingredientQty, setIngredientQty] = useState<Record<string, number>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmRecipe, setConfirmRecipe] = useState<Recipe | null>(null);
 
   const handleSave = async () => {
     if (editingRecipe) {
@@ -62,11 +65,16 @@ export function RecipesPage() {
   };
 
   const handleDelete = async (recipe: Recipe) => {
-    const confirmed = window.confirm(`Удалить рецепт ${recipe.name}?`);
-    if (!confirmed) {
+    setConfirmRecipe(recipe);
+    setConfirmOpen(true);
+    setActionRecipeId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmRecipe) {
       return;
     }
-    await deleteRecipe(recipe.id);
+    await deleteRecipe(confirmRecipe.id);
   };
 
   const handleEdit = (recipe: Recipe) => {
@@ -256,6 +264,19 @@ export function RecipesPage() {
             void handleDelete(activeRecipe);
           }
         }}
+      />
+
+      <ConfirmActionSheet
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setConfirmRecipe(null);
+          }
+        }}
+        title="Удалить рецепт?"
+        description="Это действие нельзя отменить."
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

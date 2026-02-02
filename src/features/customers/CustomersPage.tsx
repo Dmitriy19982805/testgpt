@@ -13,6 +13,7 @@ import { CustomerForm } from "./CustomerForm";
 import { OrderForm } from "../orders/OrderForm";
 import { formatDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/currency";
+import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
 
 export function CustomersPage() {
   const { customers, orders, settings, deleteCustomer } = useAppStore();
@@ -22,6 +23,8 @@ export function CustomersPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [actionCustomerId, setActionCustomerId] = useState<string | null>(null);
   const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmCustomer, setConfirmCustomer] = useState<Customer | null>(null);
 
   const handleDelete = async (customer: Customer) => {
     const hasOrders = orders.some((order) => order.customerId === customer.id);
@@ -29,11 +32,16 @@ export function CustomersPage() {
       window.alert("Нельзя удалить клиента: есть связанные заказы.");
       return;
     }
-    const confirmed = window.confirm(`Удалить клиента ${customer.name}?`);
-    if (!confirmed) {
+    setConfirmCustomer(customer);
+    setConfirmOpen(true);
+    setActionCustomerId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmCustomer) {
       return;
     }
-    await deleteCustomer(customer.id);
+    await deleteCustomer(confirmCustomer.id);
   };
 
   const handleEdit = (customer: Customer) => {
@@ -228,6 +236,19 @@ export function CustomersPage() {
             void handleDelete(activeCustomer);
           }
         }}
+      />
+
+      <ConfirmActionSheet
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setConfirmCustomer(null);
+          }
+        }}
+        title="Удалить клиента?"
+        description="Это действие нельзя отменить."
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
