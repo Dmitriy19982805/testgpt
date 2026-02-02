@@ -7,12 +7,17 @@
   font-family: "Inter", "SF Pro Text", system-ui, sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 .dark {
   color-scheme: dark;
 }
 
 body {
   min-height: 100vh;
+  overflow-y: scroll;
   background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%);
 }
 
