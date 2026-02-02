@@ -172,55 +172,60 @@ export function OriginModal({
 
   const { offsetX, offsetY, scale, fallback } = transformState;
   const inactiveTransform = fallback
-    ? "translate(-50%, -50%) scale(0.96)"
-    : `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-  const activeTransform = "translate(-50%, -50%) translate(0px, 0px) scale(1)";
+    ? "scale(0.96)"
+    : `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  const activeTransform = "translate(0px, 0px) scale(1)";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-      <button
-        type="button"
+    <>
+      <div
         className={
-          "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
-        aria-label="Закрыть"
+        aria-hidden="true"
         onClick={handleClose}
       />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={description ? descriptionId : undefined}
-        className={
-          "glass-card fixed left-1/2 top-1/2 z-[60] w-full max-w-[520px] rounded-2xl border px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
-          (variant === "danger" ? "border-rose-200/70 dark:border-rose-500/40" : "border-white/40 dark:border-slate-800/70") +
-          " origin-center" +
-          (className ? ` ${className}` : "")
-        }
-        style={{
-          transform: prefersReducedMotion ? activeTransform : isActive ? activeTransform : inactiveTransform,
-          opacity: isActive ? 1 : 0,
-        }}
-      >
-        <div className="space-y-1">
-          <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            {title}
-          </h2>
-          {description ? (
-            <p id={descriptionId} className="text-sm text-slate-500 dark:text-slate-400">
-              {description}
-            </p>
-          ) : null}
-        </div>
-        {children ? (
-          <div className={`mt-4 space-y-4${contentClassName ? ` ${contentClassName}` : ""}`}>
-            {children}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description ? descriptionId : undefined}
+          className={
+            "relative z-[60] flex flex-col rounded-2xl border bg-white/95 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:bg-slate-900/80 " +
+            (variant === "danger" ? "border-rose-200/70 dark:border-rose-500/40" : "border-white/40 dark:border-slate-800/70") +
+            " origin-center overflow-hidden" +
+            (className ? ` ${className}` : "")
+          }
+          style={{
+            transform: prefersReducedMotion ? activeTransform : isActive ? activeTransform : inactiveTransform,
+            opacity: isActive ? 1 : 0,
+          }}
+        >
+          <div className="space-y-1">
+            <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              {title}
+            </h2>
+            {description ? (
+              <p id={descriptionId} className="text-sm text-slate-500 dark:text-slate-400">
+                {description}
+              </p>
+            ) : null}
           </div>
-        ) : null}
-        {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
+          {children ? (
+            <div
+              className={`mt-4 flex min-h-0 flex-1 flex-col space-y-4${
+                contentClassName ? ` ${contentClassName}` : ""
+              }`}
+            >
+              {children}
+            </div>
+          ) : null}
+          {footer ? <div className="mt-6 flex w-full shrink-0 gap-3">{footer}</div> : null}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
