@@ -47,11 +47,18 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
   const fulfillmentLabel =
     t.orders.fulfillment[order.pickupOrDelivery] ?? order.pickupOrDelivery;
 
-  const priceTotal = order.price.total ?? 0;
+  const priceTotal = order.price.total;
   const deposit = order.payments
     .filter((payment) => payment.type === "deposit")
     .reduce((sum, payment) => sum + payment.amount, 0);
-  const remaining = priceTotal - deposit;
+  const remaining = priceTotal === null || priceTotal === undefined ? null : priceTotal - deposit;
+
+  const renderCurrency = (value?: number | null) => {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    return formatCurrency(value, settings?.currency);
+  };
 
   const checklistItems = order.checklist ?? [];
   const references = order.references ?? [];
@@ -72,8 +79,8 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
         </Button>
       }
     >
-      <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-2">
-        <div className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+      <div className="max-h-[80vh] space-y-3 overflow-y-auto pr-1">
+        <div className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">Заказ</p>
@@ -84,75 +91,79 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
           <div className="text-sm text-slate-500">Срок: {dueLabel}</div>
         </div>
 
-        <section className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Клиент</h4>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Имя</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(customerName)}
-              </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Клиент
+            </h4>
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Имя</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {valueOrDash(customerName)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Телефон</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {valueOrDash(customerPhone)}
+                </p>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-xs text-slate-500">Доп. контакт</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {valueOrDash(secondaryContact)}
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Телефон</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(customerPhone)}
-              </p>
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Доп. контакт</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(secondaryContact)}
-              </p>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Доставка</h4>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Тип</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(fulfillmentLabel)}
-              </p>
+          <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Доставка
+            </h4>
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Тип</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {valueOrDash(fulfillmentLabel)}
+                </p>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-xs text-slate-500">Адрес</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {order.pickupOrDelivery === "delivery"
+                    ? valueOrDash(order.address)
+                    : "—"}
+                </p>
+              </div>
             </div>
-            <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Адрес</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {order.pickupOrDelivery === "delivery"
-                  ? valueOrDash(order.address)
-                  : "—"}
-              </p>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
-          <div className="space-y-3 text-sm">
+          <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Сумма</span>
               <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {formatCurrency(priceTotal, settings?.currency)}
+                {renderCurrency(priceTotal)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Предоплата</span>
               <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {formatCurrency(deposit, settings?.currency)}
+                {renderCurrency(priceTotal === null || priceTotal === undefined ? null : deposit)}
               </span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
               <span>Остаток</span>
-              <span className="text-base font-semibold">
-                {formatCurrency(remaining, settings?.currency)}
-              </span>
+              <span className="text-base font-semibold">{renderCurrency(remaining)}</span>
             </div>
           </div>
         </section>
 
-        <section className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Пожелания и чек-лист
           </h4>
@@ -190,7 +201,7 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
           </div>
         </section>
 
-        <section className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Референсы</h4>
           {references.length === 0 ? (
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">—</p>
