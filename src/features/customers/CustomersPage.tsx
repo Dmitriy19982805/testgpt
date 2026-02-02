@@ -186,8 +186,11 @@ export function CustomersPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">{customer.name}</h3>
-                  <p className="text-sm text-slate-500">{customer.phone}</p>
-                  <p className="text-sm text-slate-500">{customer.email}</p>
+                  {customer.phone || customer.secondaryContact ? (
+                    <p className="text-sm text-slate-500">
+                      {[customer.phone, customer.secondaryContact].filter(Boolean).join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
                 <Button
                   variant="ghost"

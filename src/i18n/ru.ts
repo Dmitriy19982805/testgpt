@@ -134,12 +134,14 @@ export const ru = {
     placeholders: {
       fullName: "ФИО",
       phone: "Телефон",
-      email: "Эл. почта",
+      secondaryContact: "@telegram / второй номер / WhatsApp / VK",
+    },
+    labels: {
+      secondaryContact: "Доп. контакт",
     },
     validation: {
       nameRequired: "Укажите имя",
       phoneRequired: "Укажите телефон",
-      emailRequired: "Укажите корректный email",
     },
     save: "Сохранить клиента",
     empty: {

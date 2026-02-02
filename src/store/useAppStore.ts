@@ -50,6 +50,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         db.recipes.toArray(),
         db.settings.get("settings"),
       ]);
+    const migratedCustomers = customers.map((customer) => {
+      if (!customer.secondaryContact && customer.email) {
+        return { ...customer, secondaryContact: customer.email };
+      }
+      return customer;
+    });
+    const customersToUpdate = migratedCustomers.filter(
+      (customer, index) => customer !== customers[index]
+    );
+    if (customersToUpdate.length > 0) {
+      await db.customers.bulkPut(customersToUpdate);
+    }
     let resolvedSettings = settings ?? defaultSettings;
     if (!settings) {
       await db.settings.put(defaultSettings);
@@ -69,7 +81,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
     set({
-      customers,
+      customers: migratedCustomers,
       orders,
       ingredients,
       recipes,
@@ -89,7 +101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       id: customerId,
       name: demo.customerName,
       phone: "+1 (555) 302-1988",
-      email: "ekaterina@example.com",
+      secondaryContact: "@ekaterina",
       notes: demo.customerNotes,
       tags: demo.customerTags,
       createdAt: now.toISOString(),

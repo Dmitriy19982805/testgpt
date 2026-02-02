@@ -97,18 +97,22 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
     return Math.max(priceTotal - deposit, 0);
   }, [watch]);
 
+  const normalizePhone = (value: string) => value.replace(/[\s()+-]/g, "");
   const customerQuery = watch("customerName") ?? "";
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
+    const normalizedPhoneQuery = normalizePhone(customerQuery);
     if (!normalizedQuery) {
       return customers;
     }
     return customers.filter((customer) => {
-      const details = [customer.name, customer.phone, customer.notes]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return details.includes(normalizedQuery);
+      const matchesName = customer.name.toLowerCase().includes(normalizedQuery);
+      const matchesSecondaryContact = (customer.secondaryContact ?? "")
+        .toLowerCase()
+        .includes(normalizedQuery);
+      const normalizedPhone = normalizePhone(customer.phone ?? "");
+      const matchesPhone = normalizedPhone.includes(normalizedPhoneQuery);
+      return matchesName || matchesPhone || matchesSecondaryContact;
     });
   }, [customerQuery, customers]);
 
@@ -301,9 +305,9 @@ export function OrderForm({ onCreated, onUpdated, initialOrder }: OrderFormProps
                     onClick={() => handleSelectCustomer({ id: customer.id, name: customer.name })}
                   >
                     <p className="font-medium">{customer.name}</p>
-                    {customer.phone || customer.notes ? (
+                    {customer.phone || customer.secondaryContact ? (
                       <p className="text-xs text-slate-500">
-                        {[customer.phone, customer.notes].filter(Boolean).join(" · ")}
+                        {[customer.phone, customer.secondaryContact].filter(Boolean).join(" · ")}
                       </p>
                     ) : null}
                   </button>
