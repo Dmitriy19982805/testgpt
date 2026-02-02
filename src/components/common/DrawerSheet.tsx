@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/button";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface DrawerSheetProps {
   open: boolean;
@@ -18,6 +19,8 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
   const titleId = useId();
   const [isVisible, setIsVisible] = useState(open);
   const [isClosing, setIsClosing] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const transitionDuration = prefersReducedMotion ? 0 : 240;
 
   useEffect(() => {
     if (open) {
@@ -31,10 +34,10 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
       const timer = window.setTimeout(() => {
         setIsVisible(false);
         setIsClosing(false);
-      }, 240);
+      }, transitionDuration);
       return () => window.clearTimeout(timer);
     }
-  }, [open, isVisible]);
+  }, [open, isVisible, transitionDuration]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -131,7 +134,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/30 transition-opacity duration-[240ms] ease-out " +
+          "absolute inset-0 bg-slate-900/30 transition-opacity duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
@@ -144,10 +147,10 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
         aria-labelledby={titleId}
         tabIndex={-1}
         className={
-          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-transform duration-[240ms] ease-out md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none " +
+          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none " +
           (isActive
-            ? "translate-y-0 md:translate-x-0"
-            : "translate-y-full md:translate-x-full")
+            ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
+            : "translate-y-full md:translate-x-full opacity-0 scale-[0.98]")
         }
       >
         <div className="flex items-center justify-between border-b border-slate-200/60 px-6 py-4 dark:border-slate-800/60">
