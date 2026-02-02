@@ -195,22 +195,30 @@ export const ru = {
   },
   finance: {
     title: "Финансы",
-    description: "Отслеживайте платежи, авансы и расчетную прибыль.",
+    description: "Отслеживайте выручку, авансы и остатки по заказам.",
+    summaryTitle: "Сводка",
     stats: {
-      income: "Доход",
-      expenses: "Расходы",
-      net: "Итого",
+      revenue: "Выручка",
+      received: "Получено",
+      remaining: "Остаток",
     },
     empty: {
-      title: "Платежей пока нет",
-      description: "Платежи появятся после фиксации авансов и оплат.",
+      title: "Финансовых данных пока нет",
+      description: "Добавьте заказы, чтобы видеть финансы по ним.",
     },
-    paymentsTitle: "Платежи",
-    paymentTypes: {
+    listTitle: "Заказы",
+    dueLabel: "Срок",
+    rowLabels: {
+      total: "Итого",
       deposit: "Аванс",
-      balance: "Остаток",
-      refund: "Возврат",
+      remaining: "Остаток",
     },
+    periodFilters: {
+      currentMonth: "Текущий месяц",
+      allTime: "Все время",
+    },
+    drawerTitleEdit: "Редактирование заказа",
+    drawerTitleNew: "Новый заказ",
   },
   settings: {
     title: "Настройки",
