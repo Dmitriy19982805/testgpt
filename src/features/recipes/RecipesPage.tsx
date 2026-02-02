@@ -26,6 +26,7 @@ export function RecipesPage() {
   const [detailsRecipe, setDetailsRecipe] = useState<Recipe | null>(null);
   const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSave = async () => {
     if (editingRecipe) {
@@ -73,7 +74,15 @@ export function RecipesPage() {
     if (!confirmRecipe) {
       return;
     }
-    await deleteRecipe(confirmRecipe.id);
+    setIsDeleting(true);
+    try {
+      await deleteRecipe(confirmRecipe.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setConfirmRecipe(null);
+      setDeleteOriginRect(null);
+    }
   };
 
   const handleEdit = (recipe: Recipe) => {
@@ -339,6 +348,7 @@ export function RecipesPage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -346,8 +356,9 @@ export function RecipesPage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }

@@ -28,6 +28,7 @@ export function FinancePage() {
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredOrders = useMemo(() => {
     if (periodFilter === "allTime") {
@@ -78,7 +79,15 @@ export function FinancePage() {
     if (!confirmOrder) {
       return;
     }
-    await deleteOrder(confirmOrder.id);
+    setIsDeleting(true);
+    try {
+      await deleteOrder(confirmOrder.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setConfirmOrder(null);
+      setDeleteOriginRect(null);
+    }
   };
 
   const closeForm = () => {
@@ -263,6 +272,7 @@ export function FinancePage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -270,8 +280,9 @@ export function FinancePage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }

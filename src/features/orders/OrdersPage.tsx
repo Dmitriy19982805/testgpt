@@ -40,6 +40,7 @@ export function OrdersPage() {
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -103,7 +104,15 @@ export function OrdersPage() {
     if (!confirmOrder) {
       return;
     }
-    await deleteOrder(confirmOrder.id);
+    setIsDeleting(true);
+    try {
+      await deleteOrder(confirmOrder.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmOpen(false);
+      setConfirmOrder(null);
+      setDeleteOriginRect(null);
+    }
   };
 
   const handleEdit = (order: Order, originRect?: DOMRect | null) => {
@@ -576,6 +585,7 @@ export function OrdersPage() {
               variant="outline"
               className="flex-1 rounded-2xl"
               onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
             >
               Отмена
             </Button>
@@ -583,8 +593,9 @@ export function OrdersPage() {
               type="button"
               className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Удалить
+              {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
           </>
         }
