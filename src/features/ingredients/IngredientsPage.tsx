@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -11,21 +11,22 @@ import { createId } from "../../utils/ids";
 import type { Ingredient } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
-import { ActionMenu } from "../../components/common/ActionMenu";
-import { DrawerSheet } from "../../components/common/DrawerSheet";
-import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { OriginModal } from "../../components/common/OriginModal";
+import { CenterModal } from "../../components/common/CenterModal";
 
 export function IngredientsPage() {
   const { ingredients, recipes, loadAll, deleteIngredient, settings } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
-  const [actionIngredientId, setActionIngredientId] = useState<string | null>(null);
-  const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("kg");
   const [price, setPrice] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmIngredient, setConfirmIngredient] = useState<Ingredient | null>(null);
+  const [detailsIngredient, setDetailsIngredient] = useState<Ingredient | null>(null);
+  const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
+  const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [blockedDeleteOpen, setBlockedDeleteOpen] = useState(false);
 
   const handleSave = async () => {
     if (editingIngredient) {
@@ -64,12 +65,11 @@ export function IngredientsPage() {
       recipe.ingredients.some((entry) => entry.ingredientId === ingredient.id)
     );
     if (usedInRecipes) {
-      window.alert("Нельзя удалить ингредиент: он используется в рецептах.");
+      setBlockedDeleteOpen(true);
       return;
     }
     setConfirmIngredient(ingredient);
     setConfirmOpen(true);
-    setActionIngredientId(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -85,7 +85,6 @@ export function IngredientsPage() {
     setUnit(ingredient.unit);
     setPrice(ingredient.pricePerUnit);
     setShowForm(true);
-    setActionIngredientId(null);
   };
 
   const openNewIngredient = () => {
@@ -112,32 +111,31 @@ export function IngredientsPage() {
     openNewIngredient();
   };
 
-  const activeIngredient = actionIngredientId
-    ? ingredients.find((ingredient) => ingredient.id === actionIngredientId)
-    : null;
-  const activeAnchor = actionIngredientId
-    ? actionButtonRefs.current[actionIngredientId]
-    : null;
-
   return (
     <div className="space-y-6">
       <PageHeader
         title={t.ingredients.title}
         description={t.ingredients.description}
         action={
-          <Button onClick={handleToggleForm}>
+          <Button
+            onClick={(event) => {
+              setFormOriginRect(event.currentTarget.getBoundingClientRect());
+              handleToggleForm();
+            }}
+          >
             {showForm ? t.ingredients.actions.close : t.ingredients.actions.add}
           </Button>
         }
       />
 
-      <DrawerSheet
+      <OriginModal
         open={showForm}
         onOpenChange={(open) => {
           if (!open) {
             closeForm();
           }
         }}
+        originRect={formOriginRect}
         title={editingIngredient ? "Редактирование ингредиента" : "Новый ингредиент"}
       >
         <div className="space-y-3">
@@ -162,7 +160,7 @@ export function IngredientsPage() {
             {t.ingredients.save}
           </Button>
         </div>
-      </DrawerSheet>
+      </OriginModal>
 
       {ingredients.length === 0 ? (
         <EmptyState
@@ -174,7 +172,11 @@ export function IngredientsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {ingredients.map((ingredient) => (
-            <GlassCard key={ingredient.id} className="p-5">
+            <GlassCard
+              key={ingredient.id}
+              className="cursor-pointer p-5 transition hover:border-slate-300/70"
+              onClick={() => setDetailsIngredient(ingredient)}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">{ingredient.name}</h3>
@@ -183,45 +185,84 @@ export function IngredientsPage() {
                     {t.ingredients.per} {ingredient.unit}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-full p-0"
-                  ref={(node) => {
-                    actionButtonRefs.current[ingredient.id] = node;
-                  }}
-                  onClick={() => setActionIngredientId(ingredient.id)}
-                  aria-label="Действия с ингредиентом"
-                >
-                  <Pencil size={16} />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-full p-0"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setFormOriginRect(event.currentTarget.getBoundingClientRect());
+                      handleEdit(ingredient);
+                    }}
+                    aria-label="Редактировать ингредиент"
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                      void handleDelete(ingredient);
+                    }}
+                    aria-label="Удалить ингредиент"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
               </div>
             </GlassCard>
           ))}
         </div>
       )}
 
-      <ActionMenu
-        open={Boolean(activeIngredient)}
-        anchorEl={activeAnchor}
+      <CenterModal
+        open={Boolean(detailsIngredient)}
         onOpenChange={(open) => {
           if (!open) {
-            setActionIngredientId(null);
+            setDetailsIngredient(null);
           }
         }}
-        onEdit={() => {
-          if (activeIngredient) {
-            handleEdit(activeIngredient);
-          }
-        }}
-        onDelete={() => {
-          if (activeIngredient) {
-            void handleDelete(activeIngredient);
-          }
-        }}
-      />
+        title={detailsIngredient?.name ?? "Ингредиент"}
+        description="Детали ингредиента"
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 rounded-2xl"
+            onClick={() => setDetailsIngredient(null)}
+          >
+            Закрыть
+          </Button>
+        }
+      >
+        {detailsIngredient ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-200">
+            <div>
+              <p className="text-xs uppercase text-slate-400">Стоимость</p>
+              <p>
+                {formatCurrency(detailsIngredient.pricePerUnit, settings?.currency)}{" "}
+                {t.ingredients.per} {detailsIngredient.unit}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-slate-400">Используется в рецептах</p>
+              <p>
+                {
+                  recipes.filter((recipe) =>
+                    recipe.ingredients.some((entry) => entry.ingredientId === detailsIngredient.id)
+                  ).length
+                }
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </CenterModal>
 
-      <ConfirmModal
+      <OriginModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);
@@ -229,9 +270,46 @@ export function IngredientsPage() {
             setConfirmIngredient(null);
           }
         }}
+        originRect={deleteOriginRect}
         title="Удалить ингредиент?"
         description="Это действие нельзя отменить."
-        onConfirm={handleConfirmDelete}
+        variant="danger"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+              onClick={handleConfirmDelete}
+            >
+              Удалить
+            </Button>
+          </>
+        }
+      />
+
+      <CenterModal
+        open={blockedDeleteOpen}
+        onOpenChange={setBlockedDeleteOpen}
+        title="Удаление недоступно"
+        description="Нельзя удалить ингредиент: он используется в рецептах."
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 rounded-2xl"
+            onClick={() => setBlockedDeleteOpen(false)}
+          >
+            Понятно
+          </Button>
+        }
       />
     </div>
   );

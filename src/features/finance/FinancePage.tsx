@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { endOfMonth, startOfMonth } from "date-fns";
+import { Pencil, Trash2 } from "lucide-react";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
@@ -11,17 +12,22 @@ import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { OrderForm } from "../orders/OrderForm";
 import { OrderDetailsSheet } from "../orders/OrderDetailsSheet";
 import type { Order } from "../../db/types";
+import { Button } from "../../components/ui/button";
+import { OriginModal } from "../../components/common/OriginModal";
 
 const periodFilters = ["currentMonth", "allTime"] as const;
 type PeriodFilter = (typeof periodFilters)[number];
 
 export function FinancePage() {
-  const { orders, settings } = useAppStore();
+  const { orders, settings, deleteOrder } = useAppStore();
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("currentMonth");
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
 
   const filteredOrders = useMemo(() => {
     if (periodFilter === "allTime") {
@@ -63,6 +69,18 @@ export function FinancePage() {
     setShowForm(true);
   };
 
+  const openDeleteConfirm = (order: Order) => {
+    setConfirmOrder(order);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmOrder) {
+      return;
+    }
+    await deleteOrder(confirmOrder.id);
+  };
+
   const closeForm = () => {
     setShowForm(false);
     setEditingOrder(null);
@@ -100,7 +118,6 @@ export function FinancePage() {
             setDetailsOrder(null);
           }
         }}
-        onEdit={handleEditFromDetails}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -146,11 +163,18 @@ export function FinancePage() {
                 .reduce((sum, payment) => sum + payment.amount, 0);
               const remaining = priceTotal - deposit;
               return (
-                <button
+                <div
                   key={order.id}
-                  type="button"
                   onClick={() => openOrderDetails(order)}
                   className="flex w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-4 text-left text-sm transition hover:border-slate-300/70 hover:bg-white/90 dark:border-slate-800/60 dark:bg-slate-900/60 dark:hover:border-slate-700/70"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openOrderDetails(order);
+                    }
+                  }}
                 >
                   <div className="min-w-[180px] flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
@@ -164,32 +188,94 @@ export function FinancePage() {
                       <span>{t.orders.statusLabels[order.status] ?? order.status}</span>
                     </div>
                   </div>
-                  <div className="grid min-w-[190px] gap-1 text-right text-xs text-slate-500">
-                    <div className="flex items-center justify-between gap-3">
-                      <span>{t.finance.rowLabels.total}</span>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(priceTotal, settings?.currency)}
-                      </span>
+                  <div className="flex items-center gap-4">
+                    <div className="grid min-w-[190px] gap-1 text-right text-xs text-slate-500">
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{t.finance.rowLabels.total}</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(priceTotal, settings?.currency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{t.finance.rowLabels.deposit}</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(deposit, settings?.currency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{t.finance.rowLabels.remaining}</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(remaining, settings?.currency)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>{t.finance.rowLabels.deposit}</span>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(deposit, settings?.currency)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>{t.finance.rowLabels.remaining}</span>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(remaining, settings?.currency)}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 rounded-full p-0"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleEditFromDetails(order);
+                        }}
+                        aria-label="Редактировать заказ"
+                      >
+                        <Pencil size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 rounded-full p-0 text-rose-500 hover:text-rose-600"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
+                          openDeleteConfirm(order);
+                        }}
+                        aria-label="Удалить заказ"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
         </GlassCard>
       )}
+
+      <OriginModal
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setConfirmOrder(null);
+          }
+        }}
+        originRect={deleteOriginRect}
+        title="Удалить заказ?"
+        description="Это действие нельзя отменить."
+        variant="danger"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+              onClick={handleConfirmDelete}
+            >
+              Удалить
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }
