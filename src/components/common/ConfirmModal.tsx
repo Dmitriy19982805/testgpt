@@ -30,9 +30,10 @@ export function ConfirmModal({
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(open);
-  const [isClosing, setIsClosing] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const transitionDuration = prefersReducedMotion ? 0 : 240;
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -50,19 +51,57 @@ export function ConfirmModal({
   useEffect(() => {
     if (open) {
       setIsVisible(true);
-      setIsClosing(false);
-      return;
+      if (prefersReducedMotion) {
+        setIsActive(true);
+        return;
+      }
+      setIsActive(false);
+      const frame = window.requestAnimationFrame(() => {
+        setIsActive(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     if (isVisible) {
-      setIsClosing(true);
-      const timer = window.setTimeout(() => {
+      setIsActive(false);
+      if (prefersReducedMotion) {
         setIsVisible(false);
-        setIsClosing(false);
-      }, transitionDuration);
-      return () => window.clearTimeout(timer);
+      }
     }
-  }, [open, isVisible, transitionDuration]);
+  }, [open, isVisible, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (open || !isVisible || prefersReducedMotion) {
+      return;
+    }
+    const modal = modalRef.current;
+    if (!modal) {
+      setIsVisible(false);
+      return;
+    }
+    let finished = false;
+    const finalize = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      modal.removeEventListener("transitionend", handleTransitionEnd);
+      window.clearTimeout(timeout);
+      setIsVisible(false);
+    };
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target !== modal) {
+        return;
+      }
+      if (event.propertyName !== "opacity" && event.propertyName !== "transform") {
+        return;
+      }
+      finalize();
+    };
+    const timeout = window.setTimeout(finalize, transitionDuration + 50);
+    modal.addEventListener("transitionend", handleTransitionEnd);
+    return finalize;
+  }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -132,8 +171,6 @@ export function ConfirmModal({
     }
   };
 
-  const isActive = open && !isClosing;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <button
@@ -146,13 +183,16 @@ export function ConfirmModal({
         onClick={handleClose}
       />
       <div
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={
-          "glass-card relative w-full max-w-md rounded-2xl border border-white/40 px-6 py-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 " +
-          (isActive ? "opacity-100 scale-100" : "opacity-0 scale-[0.96]")
+          "glass-card relative w-full max-w-md rounded-2xl border border-white/40 px-6 py-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center " +
+          (isActive
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-[0.96] translate-y-2")
         }
       >
         <h2
