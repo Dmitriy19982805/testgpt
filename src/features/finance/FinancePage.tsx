@@ -9,6 +9,7 @@ import { formatDate } from "../../utils/date";
 import { t } from "../../i18n";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { OrderForm } from "../orders/OrderForm";
+import { OrderDetailsSheet } from "../orders/OrderDetailsSheet";
 import type { Order } from "../../db/types";
 
 const periodFilters = ["currentMonth", "allTime"] as const;
@@ -19,6 +20,8 @@ export function FinancePage() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("currentMonth");
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filteredOrders = useMemo(() => {
     if (periodFilter === "allTime") {
@@ -48,7 +51,14 @@ export function FinancePage() {
     );
   }, [filteredOrders]);
 
-  const openOrder = (order: Order) => {
+  const openOrderDetails = (order: Order) => {
+    setDetailsOrder(order);
+    setDetailsOpen(true);
+  };
+
+  const handleEditFromDetails = (order: Order) => {
+    setDetailsOpen(false);
+    setDetailsOrder(null);
     setEditingOrder(order);
     setShowForm(true);
   };
@@ -80,6 +90,18 @@ export function FinancePage() {
           onUpdated={closeForm}
         />
       </DrawerSheet>
+
+      <OrderDetailsSheet
+        open={detailsOpen}
+        order={detailsOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsOpen(false);
+            setDetailsOrder(null);
+          }
+        }}
+        onEdit={handleEditFromDetails}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{t.finance.summaryTitle}</h2>
@@ -127,7 +149,7 @@ export function FinancePage() {
                 <button
                   key={order.id}
                   type="button"
-                  onClick={() => openOrder(order)}
+                  onClick={() => openOrderDetails(order)}
                   className="flex w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-4 text-left text-sm transition hover:border-slate-300/70 hover:bg-white/90 dark:border-slate-800/60 dark:bg-slate-900/60 dark:hover:border-slate-700/70"
                 >
                   <div className="min-w-[180px] flex-1 space-y-1">

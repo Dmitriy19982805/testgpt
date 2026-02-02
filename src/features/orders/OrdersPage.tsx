@@ -19,6 +19,7 @@ import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { formatCurrency } from "../../utils/currency";
 import type { Order } from "../../db/types";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { OrderDetailsSheet } from "./OrderDetailsSheet";
 
 const views = ["list", "kanban", "calendar"] as const;
 
@@ -37,6 +38,8 @@ export function OrdersPage() {
   const [dayOrdersOpen, setDayOrdersOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return orders.filter((order) => {
@@ -97,6 +100,18 @@ export function OrdersPage() {
     setShowForm(true);
     setDayOrdersOpen(false);
     setActionOrderId(null);
+  };
+
+  const openDetails = (order: Order) => {
+    setDetailsOrder(order);
+    setDetailsOpen(true);
+    setDayOrdersOpen(false);
+  };
+
+  const handleEditFromDetails = (order: Order) => {
+    setDetailsOpen(false);
+    setDetailsOrder(null);
+    handleEdit(order);
   };
 
   const closeForm = () => {
@@ -180,9 +195,11 @@ export function OrdersPage() {
               const customerLabel =
                 customer?.name ?? order.customerName ?? t.orders.walkInCustomer;
               return (
-                <GlassCard
+                <button
                   key={order.id}
-                  className="flex flex-wrap items-center justify-between gap-4 p-4"
+                  type="button"
+                  onClick={() => openDetails(order)}
+                  className="glass-card flex w-full flex-wrap items-center justify-between gap-4 p-4 text-left transition hover:border-slate-300/70 hover:bg-white/90 dark:hover:border-slate-700/70"
                 >
                   <div className="space-y-1">
                     <p className="text-base font-semibold">{customerLabel}</p>
@@ -198,21 +215,25 @@ export function OrdersPage() {
                     <span className="text-sm font-semibold">
                       {formatCurrency(order.price.total ?? 0, settings?.currency ?? "RUB")}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(order)}
-                      className="rounded-full px-3"
-                    >
-                      Открыть
-                    </Button>
                   </div>
-                </GlassCard>
+                </button>
               );
             })}
           </div>
         </div>
       </DrawerSheet>
+
+      <OrderDetailsSheet
+        open={detailsOpen}
+        order={detailsOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsOpen(false);
+            setDetailsOrder(null);
+          }
+        }}
+        onEdit={handleEditFromDetails}
+      />
 
       <GlassCard className="p-6">
         <div className="flex flex-wrap items-center gap-3">
