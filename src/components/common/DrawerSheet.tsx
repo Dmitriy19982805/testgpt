@@ -18,26 +18,64 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const [isVisible, setIsVisible] = useState(open);
-  const [isClosing, setIsClosing] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const transitionDuration = prefersReducedMotion ? 0 : 240;
 
   useEffect(() => {
     if (open) {
       setIsVisible(true);
-      setIsClosing(false);
-      return;
+      if (prefersReducedMotion) {
+        setIsActive(true);
+        return;
+      }
+      setIsActive(false);
+      const frame = window.requestAnimationFrame(() => {
+        setIsActive(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     if (isVisible) {
-      setIsClosing(true);
-      const timer = window.setTimeout(() => {
+      setIsActive(false);
+      if (prefersReducedMotion) {
         setIsVisible(false);
-        setIsClosing(false);
-      }, transitionDuration);
-      return () => window.clearTimeout(timer);
+      }
     }
-  }, [open, isVisible, transitionDuration]);
+  }, [open, isVisible, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (open || !isVisible || prefersReducedMotion) {
+      return;
+    }
+    const panel = panelRef.current;
+    if (!panel) {
+      setIsVisible(false);
+      return;
+    }
+    let finished = false;
+    const finalize = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      panel.removeEventListener("transitionend", handleTransitionEnd);
+      window.clearTimeout(timeout);
+      setIsVisible(false);
+    };
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target !== panel) {
+        return;
+      }
+      if (event.propertyName !== "opacity" && event.propertyName !== "transform") {
+        return;
+      }
+      finalize();
+    };
+    const timeout = window.setTimeout(finalize, transitionDuration + 50);
+    panel.addEventListener("transitionend", handleTransitionEnd);
+    return finalize;
+  }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -127,8 +165,6 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
     return null;
   }
 
-  const isActive = open && !isClosing;
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-stretch md:justify-end">
       <button
@@ -147,7 +183,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
         aria-labelledby={titleId}
         tabIndex={-1}
         className={
-          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none " +
+          "glass-card relative flex w-full max-w-full flex-col overflow-hidden rounded-t-[32px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 md:h-full md:w-[460px] md:max-w-[460px] md:rounded-none max-h-[90vh] md:max-h-none origin-bottom md:origin-right " +
           (isActive
             ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
             : "translate-y-full md:translate-x-full opacity-0 scale-[0.98]")

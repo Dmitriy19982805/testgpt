@@ -34,7 +34,7 @@ export function ActionMenu({
   const [position, setPosition] = useState({ top: 0, left: 0, ready: false });
   const menuRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(open);
-  const [isClosing, setIsClosing] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const transitionDuration = prefersReducedMotion ? 0 : 240;
 
@@ -56,19 +56,72 @@ export function ActionMenu({
   useEffect(() => {
     if (open) {
       setIsVisible(true);
-      setIsClosing(false);
+      setIsActive(false);
+      if (prefersReducedMotion) {
+        setIsActive(true);
+      }
       return;
     }
 
     if (isVisible) {
-      setIsClosing(true);
-      const timer = window.setTimeout(() => {
+      setIsActive(false);
+      if (!isDesktop || prefersReducedMotion) {
         setIsVisible(false);
-        setIsClosing(false);
-      }, transitionDuration);
-      return () => window.clearTimeout(timer);
+      }
     }
-  }, [open, isVisible, transitionDuration]);
+  }, [open, isVisible, isDesktop, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (!open || !isDesktop || !isVisible) {
+      return;
+    }
+    if (!position.ready) {
+      return;
+    }
+    if (prefersReducedMotion) {
+      setIsActive(true);
+      return;
+    }
+    setIsActive(false);
+    const frame = window.requestAnimationFrame(() => {
+      setIsActive(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, isDesktop, isVisible, position.ready, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (open || !isVisible || !isDesktop || prefersReducedMotion) {
+      return;
+    }
+    setIsActive(false);
+    const menu = menuRef.current;
+    if (!menu) {
+      setIsVisible(false);
+      return;
+    }
+    let finished = false;
+    const finalize = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      menu.removeEventListener("transitionend", handleTransitionEnd);
+      window.clearTimeout(timeout);
+      setIsVisible(false);
+    };
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target !== menu) {
+        return;
+      }
+      if (event.propertyName !== "opacity" && event.propertyName !== "transform") {
+        return;
+      }
+      finalize();
+    };
+    const timeout = window.setTimeout(finalize, transitionDuration + 50);
+    menu.addEventListener("transitionend", handleTransitionEnd);
+    return finalize;
+  }, [open, isVisible, isDesktop, prefersReducedMotion, transitionDuration]);
 
   useEffect(() => {
     if (!open || !isDesktop) {
@@ -175,14 +228,13 @@ export function ActionMenu({
     return null;
   }
 
-  const isActive = open && !isClosing;
   const isReady = position.ready && isActive;
 
   return (
     <div
       ref={menuRef}
       className={cn(
-        "fixed z-50 min-w-[180px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0",
+        "fixed z-50 min-w-[180px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-top-right",
         isReady
           ? "opacity-100 translate-y-0 scale-100"
           : "opacity-0 translate-y-2 scale-[0.98]"
