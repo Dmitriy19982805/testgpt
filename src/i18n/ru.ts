@@ -231,7 +231,6 @@ export const ru = {
       businessName: "Название бизнеса",
       currency: "Валюта",
       dayCapacity: "Дневная вместимость",
-      defaultDeposit: "Аванс по умолчанию, %",
       adminPin: "ПИН администратора",
     },
     actions: {

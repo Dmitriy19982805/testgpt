@@ -18,7 +18,6 @@ export function SettingsPage({ auth }: SettingsPageProps) {
   const [businessName, setBusinessName] = useState(settings?.businessName ?? "");
   const [currency, setCurrency] = useState(settings?.currency ?? "RUB");
   const [capacity, setCapacity] = useState(settings?.dayCapacityRules ?? 5);
-  const [depositPct, setDepositPct] = useState(settings?.defaultDepositPct ?? 40);
   const [pin, setPin] = useState(settings?.pin ?? "1234");
 
   const handleSave = async () => {
@@ -28,7 +27,6 @@ export function SettingsPage({ auth }: SettingsPageProps) {
       businessName,
       currency,
       dayCapacityRules: capacity,
-      defaultDepositPct: depositPct,
       pin,
     };
     await saveSettings(next);
@@ -127,22 +125,6 @@ export function SettingsPage({ auth }: SettingsPageProps) {
             />
             <p className="text-xs text-slate-500">
               Используется для контроля загрузки календаря
-            </p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">
-              Предоплата по умолчанию (%)
-            </label>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={depositPct}
-              onChange={(event) => setDepositPct(Number(event.target.value))}
-              placeholder={t.settings.placeholders.defaultDeposit}
-            />
-            <p className="text-xs text-slate-500">
-              Процент от суммы заказа, подставляется автоматически
             </p>
           </div>
         </div>

@@ -115,7 +115,6 @@ export interface Settings {
   currency: string;
   currencyMigrated?: boolean;
   dayCapacityRules: number;
-  defaultDepositPct: number;
   theme: "light" | "dark";
   pin: string;
 }
