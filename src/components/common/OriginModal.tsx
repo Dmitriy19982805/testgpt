@@ -10,6 +10,8 @@ interface OriginModalProps {
   children?: ReactNode;
   footer?: ReactNode;
   variant?: "default" | "danger";
+  className?: string;
+  contentClassName?: string;
 }
 
 interface TransformState {
@@ -35,6 +37,8 @@ export function OriginModal({
   children,
   footer,
   variant = "default",
+  className,
+  contentClassName,
 }: OriginModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -192,7 +196,8 @@ export function OriginModal({
         className={
           "glass-card fixed left-1/2 top-1/2 z-[60] w-full max-w-[520px] rounded-2xl border px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (variant === "danger" ? "border-rose-200/70 dark:border-rose-500/40" : "border-white/40 dark:border-slate-800/70") +
-          " origin-center"
+          " origin-center" +
+          (className ? ` ${className}` : "")
         }
         style={{
           transform: prefersReducedMotion ? activeTransform : isActive ? activeTransform : inactiveTransform,
@@ -209,7 +214,11 @@ export function OriginModal({
             </p>
           ) : null}
         </div>
-        {children ? <div className="mt-4 space-y-4">{children}</div> : null}
+        {children ? (
+          <div className={`mt-4 space-y-4${contentClassName ? ` ${contentClassName}` : ""}`}>
+            {children}
+          </div>
+        ) : null}
         {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
       </div>
     </div>
