@@ -186,6 +186,7 @@ export function OrdersPage() {
             initialOrder={editingOrder}
             onCreated={closeForm}
             onUpdated={closeForm}
+            onClose={closeForm}
             layout="modal"
             className="min-h-0 flex-1"
           />

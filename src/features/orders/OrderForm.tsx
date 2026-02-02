@@ -43,6 +43,7 @@ interface OrderFormProps {
 interface OrderFormContentProps extends OrderFormProps {
   className?: string;
   layout?: "default" | "modal";
+  onClose?: () => void;
 }
 
 export function OrderFormContent({
@@ -51,6 +52,7 @@ export function OrderFormContent({
   initialOrder,
   className,
   layout = "default",
+  onClose,
 }: OrderFormContentProps) {
   const { customers, orders, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
@@ -110,6 +112,8 @@ export function OrderFormContent({
 
   const normalizePhone = (value: string) => value.replace(/[\s()+-]/g, "");
   const customerQuery = watch("customerName") ?? "";
+  const isFirstStep = step === 0;
+  const canCloseOnFirstStep = layout === "modal" && Boolean(onClose);
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
     const normalizedPhoneQuery = normalizePhone(customerQuery);
@@ -459,10 +463,16 @@ export function OrderFormContent({
         <Button
           type="button"
           variant="ghost"
-          onClick={() => setStep((prev) => Math.max(prev - 1, 0))}
-          disabled={step === 0}
+          onClick={() => {
+            if (isFirstStep && canCloseOnFirstStep) {
+              onClose?.();
+              return;
+            }
+            setStep((prev) => Math.max(prev - 1, 0));
+          }}
+          disabled={isFirstStep && !canCloseOnFirstStep}
         >
-          {t.orders.form.back}
+          {isFirstStep && canCloseOnFirstStep ? t.orders.actions.close : t.orders.form.back}
         </Button>
         <div className="flex items-center gap-2">
           <Button type="button" variant="subtle" onClick={handleSaveDraft}>
