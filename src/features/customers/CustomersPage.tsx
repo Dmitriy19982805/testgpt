@@ -13,7 +13,7 @@ import { CustomerForm } from "./CustomerForm";
 import { OrderForm } from "../orders/OrderForm";
 import { formatDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/currency";
-import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 
 export function CustomersPage() {
   const { customers, orders, settings, deleteCustomer } = useAppStore();
@@ -238,7 +238,7 @@ export function CustomersPage() {
         }}
       />
 
-      <ConfirmActionSheet
+      <ConfirmModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);

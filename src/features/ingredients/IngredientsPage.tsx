@@ -13,7 +13,7 @@ import { formatCurrency } from "../../utils/currency";
 import { t } from "../../i18n";
 import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
-import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 
 export function IngredientsPage() {
   const { ingredients, recipes, loadAll, deleteIngredient, settings } = useAppStore();
@@ -221,7 +221,7 @@ export function IngredientsPage() {
         }}
       />
 
-      <ConfirmActionSheet
+      <ConfirmModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);

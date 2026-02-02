@@ -4,7 +4,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
 import { formatDate } from "../../utils/date";
 import { t } from "../../i18n";
-import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 
 export function PrintOrderPage() {
   const { id } = useParams();
@@ -108,7 +108,7 @@ export function PrintOrderPage() {
         </ul>
       </div>
 
-      <ConfirmActionSheet
+      <ConfirmModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Удалить заказ?"
