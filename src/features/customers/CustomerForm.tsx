@@ -13,7 +13,7 @@ import { t } from "../../i18n";
 const schema = z.object({
   name: z.string().min(2, t.customers.validation.nameRequired),
   phone: z.string().min(6, t.customers.validation.phoneRequired),
-  email: z.string().email(t.customers.validation.emailRequired),
+  secondaryContact: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,12 +37,12 @@ export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
       reset({
         name: initialCustomer.name,
         phone: initialCustomer.phone,
-        email: initialCustomer.email,
+        secondaryContact: initialCustomer.secondaryContact ?? initialCustomer.email ?? "",
       });
       return;
     }
 
-    reset({ name: "", phone: "", email: "" });
+    reset({ name: "", phone: "", secondaryContact: "" });
   }, [initialCustomer, reset]);
 
   const onSubmit = async (values: FormValues) => {
@@ -53,14 +53,14 @@ export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
         ...initialCustomer,
         name: values.name,
         phone: values.phone,
-        email: values.email,
+        secondaryContact: values.secondaryContact?.trim() || "",
       };
     } else {
       customer = {
         id: createId("cust"),
         name: values.name,
         phone: values.phone,
-        email: values.email,
+        secondaryContact: values.secondaryContact?.trim() || "",
         notes: "",
         tags: [],
         createdAt: new Date().toISOString(),
@@ -78,8 +78,11 @@ export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
       {errors.name ? <p className="text-xs text-rose-500">{errors.name.message}</p> : null}
       <Input placeholder={t.customers.placeholders.phone} {...register("phone")} />
       {errors.phone ? <p className="text-xs text-rose-500">{errors.phone.message}</p> : null}
-      <Input placeholder={t.customers.placeholders.email} {...register("email")} />
-      {errors.email ? <p className="text-xs text-rose-500">{errors.email.message}</p> : null}
+      <label className="text-sm font-medium">{t.customers.labels.secondaryContact}</label>
+      <Input
+        placeholder={t.customers.placeholders.secondaryContact}
+        {...register("secondaryContact")}
+      />
       <Button type="submit">{t.customers.save}</Button>
     </form>
   );

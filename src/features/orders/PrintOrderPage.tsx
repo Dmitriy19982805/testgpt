@@ -66,8 +66,11 @@ export function PrintOrderPage() {
           <p className="mt-2 text-lg font-medium">
             {customerName}
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.phone}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.email}</p>
+          {customer?.phone || customer?.secondaryContact ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {[customer?.phone, customer?.secondaryContact].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
         </div>
         <div>
           <h2 className="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400">

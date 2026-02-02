@@ -4,7 +4,8 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
-  email: string;
+  secondaryContact?: string;
+  email?: string;
   notes: string;
   tags: string[];
   createdAt: string;
