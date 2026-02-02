@@ -18,7 +18,7 @@ import { ActionMenu } from "../../components/common/ActionMenu";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { formatCurrency } from "../../utils/currency";
 import type { Order } from "../../db/types";
-import { ConfirmActionSheet } from "../../components/common/ConfirmActionSheet";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 
 const views = ["list", "kanban", "calendar"] as const;
 
@@ -447,7 +447,7 @@ export function OrdersPage() {
         }}
       />
 
-      <ConfirmActionSheet
+      <ConfirmModal
         open={confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);
