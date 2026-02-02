@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ru as ruLocale } from "date-fns/locale";
 import { Pencil, Trash2 } from "lucide-react";
@@ -10,7 +10,7 @@ import { Input } from "../../components/ui/input";
 import { cn } from "../../components/ui/utils";
 import { useAppStore } from "../../store/useAppStore";
 import { formatDate } from "../../utils/date";
-import { OrderForm } from "./OrderForm";
+import { OrderForm, OrderFormContent } from "./OrderForm";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
 import { t } from "../../i18n";
@@ -36,8 +36,25 @@ export function OrdersPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
+  const [formOriginRect, setFormOriginRect] = useState<DOMRect | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mediaQuery.matches);
+    update();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", update);
+      return () => mediaQuery.removeEventListener("change", update);
+    }
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
 
   const filtered = useMemo(() => {
     return orders.filter((order) => {
@@ -89,8 +106,9 @@ export function OrdersPage() {
     await deleteOrder(confirmOrder.id);
   };
 
-  const handleEdit = (order: Order) => {
+  const handleEdit = (order: Order, originRect?: DOMRect | null) => {
     setEditingOrder(order);
+    setFormOriginRect(originRect ?? null);
     setShowForm(true);
     setDayOrdersOpen(false);
   };
@@ -104,10 +122,12 @@ export function OrdersPage() {
   const closeForm = () => {
     setShowForm(false);
     setEditingOrder(null);
+    setFormOriginRect(null);
   };
 
   const openNewOrder = () => {
     setEditingOrder(null);
+    setFormOriginRect(null);
     setShowForm(true);
   };
 
@@ -140,21 +160,44 @@ export function OrdersPage() {
         }
       />
 
-      <DrawerSheet
-        open={showForm}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeForm();
-          }
-        }}
-        title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
-      >
-        <OrderForm
-          initialOrder={editingOrder}
-          onCreated={closeForm}
-          onUpdated={closeForm}
-        />
-      </DrawerSheet>
+      {isDesktop ? (
+        <OriginModal
+          open={showForm}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeForm();
+            }
+          }}
+          originRect={formOriginRect}
+          title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
+        >
+          <div className="max-h-[75vh] overflow-y-auto pr-1">
+            <OrderFormContent
+              initialOrder={editingOrder}
+              onCreated={closeForm}
+              onUpdated={closeForm}
+            />
+          </div>
+        </OriginModal>
+      ) : (
+        <DrawerSheet
+          open={showForm}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeForm();
+            }
+          }}
+          title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
+        >
+          <div className="max-h-[75vh] overflow-y-auto pr-1">
+            <OrderForm
+              initialOrder={editingOrder}
+              onCreated={closeForm}
+              onUpdated={closeForm}
+            />
+          </div>
+        </DrawerSheet>
+      )}
 
       <DrawerSheet
         open={dayOrdersOpen}
@@ -215,7 +258,7 @@ export function OrdersPage() {
                       className="h-8 w-8 rounded-full p-0"
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleEdit(order);
+                        handleEdit(order, event.currentTarget.getBoundingClientRect());
                       }}
                       aria-label="Редактировать заказ"
                     >
@@ -335,7 +378,7 @@ export function OrdersPage() {
                       className="h-9 w-9 rounded-full p-0"
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleEdit(order);
+                        handleEdit(order, event.currentTarget.getBoundingClientRect());
                       }}
                       aria-label="Редактировать заказ"
                     >
@@ -398,7 +441,7 @@ export function OrdersPage() {
                             className="h-7 w-7 rounded-full p-0"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleEdit(order);
+                              handleEdit(order, event.currentTarget.getBoundingClientRect());
                             }}
                             aria-label="Редактировать заказ"
                           >
