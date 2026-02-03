@@ -24,7 +24,6 @@ const schema = z
     designNotes: z.string().optional(),
     priceTotal: z.coerce.number().min(0),
     deposit: z.coerce.number().min(0),
-    checklist: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     const total = Number(values.priceTotal) || 0;
@@ -89,7 +88,6 @@ export function OrderFormContent({
       priceTotal: initialOrder?.price.total ?? 0,
       deposit:
         initialOrder?.payments.find((payment) => payment.type === "deposit")?.amount ?? 0,
-      checklist: initialOrder?.checklist.map((item) => item.text).join("\n") ?? "",
     }),
     [customers, initialOrder]
   );
@@ -121,7 +119,7 @@ export function OrderFormContent({
   const deposit = watch("deposit");
   const total = Number(priceTotal) || 0;
   const paid = Number(deposit) || 0;
-  const remaining = total - paid;
+  const remaining = Math.max(total - paid, 0);
   const isDepositOver = paid > total;
 
   const normalizePhone = (value: string) => value.replace(/[\s()+-]/g, "");
@@ -202,10 +200,7 @@ export function OrderFormContent({
           total: values.priceTotal,
         },
         payments: nextPayments,
-        checklist: (values.checklist ?? "")
-          .split("\n")
-          .filter(Boolean)
-          .map((text) => ({ id: createId("check"), text, done: false })),
+        checklist: initialOrder.checklist,
         references,
       };
 
@@ -255,10 +250,7 @@ export function OrderFormContent({
         grossProfit: values.priceTotal,
         marginPct: 100,
       },
-      checklist: (values.checklist ?? "")
-        .split("\n")
-        .filter(Boolean)
-        .map((text) => ({ id: createId("check"), text, done: false })),
+      checklist: [],
       timeline: [
         { id: createId("time"), at: new Date().toISOString(), text: t.orders.timelineCreated },
       ],
@@ -316,7 +308,7 @@ export function OrderFormContent({
 
       <div
         className={cn(
-          isModalLayout ? "min-h-0 flex-1 overflow-y-auto pr-1" : "space-y-4"
+          isModalLayout ? "min-h-[360px] flex-1 overflow-y-auto pr-1" : "space-y-4"
         )}
       >
         <div className={cn(isModalLayout && "space-y-4")}>
@@ -401,11 +393,6 @@ export function OrderFormContent({
               </select>
               <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
               <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
-              <label className="text-sm font-medium">{t.orders.form.designNotesLabel}</label>
-              <Input
-                placeholder={t.orders.form.designNotesPlaceholder}
-                {...register("designNotes")}
-              />
             </div>
           )}
 
@@ -421,14 +408,12 @@ export function OrderFormContent({
               <div
                 className={cn(
                   "rounded-2xl px-4 py-3 text-sm",
-                  isDepositOver
-                    ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                  "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200"
                 )}
               >
-                {isDepositOver ? "Переплата:" : t.orders.form.remainingBalanceLabel}{" "}
+                {t.orders.form.remainingBalanceLabel}{" "}
                 <span className="font-semibold">
-                  {formatCurrency(Math.abs(remaining), settings?.currency)}
+                  {formatCurrency(remaining, settings?.currency)}
                 </span>
               </div>
             </div>
@@ -436,25 +421,16 @@ export function OrderFormContent({
 
           {step === 3 && (
             <div className={cn("space-y-3", sectionClass)}>
-              <p className="text-sm text-slate-500">{t.orders.form.paymentsNote}</p>
-              <div className="rounded-2xl border border-dashed border-slate-200/70 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700/70">
-                {t.orders.form.paymentsPlaceholder}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className={cn("space-y-3", sectionClass)}>
-              <label className="text-sm font-medium">{t.orders.form.checklistLabel}</label>
+              <label className="text-sm font-medium">{t.orders.form.notesLabel}</label>
               <textarea
                 className="h-32 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
-                placeholder={t.orders.form.checklistPlaceholder}
-                {...register("checklist")}
+                placeholder={t.orders.form.notesPlaceholder}
+                {...register("designNotes")}
               />
             </div>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <div className={cn("space-y-4", sectionClass)}>
               <input type="file" accept="image/*" onChange={handleFile} />
               <div className="grid gap-3 sm:grid-cols-2">
