@@ -21,6 +21,15 @@ export function PrintOrderPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
+  const isExportHidden = (node: HTMLElement | null) => {
+    if (!node) {
+      return false;
+    }
+    if (node.getAttribute?.("data-export-hide") === "true") {
+      return true;
+    }
+    return node.classList?.contains("no-export") ?? false;
+  };
 
   const handleDelete = async () => {
     if (!order) {
@@ -93,6 +102,12 @@ export function PrintOrderPage() {
       const blob = await toBlob(summaryRef.current, {
         cacheBust: true,
         pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        style: {
+          backgroundColor: "#ffffff",
+          boxShadow: "none",
+        },
+        filter: (node) => !isExportHidden(node as HTMLElement),
       });
       if (!blob) {
         throw new Error("blob-empty");
@@ -101,11 +116,16 @@ export function PrintOrderPage() {
       const file = new File([blob], filename, { type: "image/png" });
       const shareTitle = `Заказ ${order.orderNo || order.id}`;
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      const prefersShare =
+        window.matchMedia?.("(pointer: coarse)").matches ||
+        window.matchMedia?.("(max-width: 768px)").matches;
+
+      if (prefersShare && navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: shareTitle });
-      } else {
-        downloadImage(blob, filename);
+        return;
       }
+
+      downloadImage(blob, filename);
     } catch (error) {
       console.error(error);
       setExportError("Не удалось создать файл. Проверьте подключение и попробуйте снова.");
@@ -131,7 +151,7 @@ export function PrintOrderPage() {
             </p>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="no-export flex flex-wrap items-center gap-3" data-export-hide="true">
           <Button variant="outline" onClick={() => window.print()} disabled={isExporting}>
             {t.orders.print.print}
           </Button>
@@ -152,7 +172,7 @@ export function PrintOrderPage() {
         </div>
       </div>
       {exportError ? (
-        <p className="text-sm text-rose-500" role="status">
+        <p className="no-export text-sm text-rose-500" role="status" data-export-hide="true">
           {exportError}
         </p>
       ) : null}
@@ -283,35 +303,37 @@ export function PrintOrderPage() {
         </section>
       </div>
 
-      <OriginModal
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        originRect={deleteOriginRect}
-        title="Удалить заказ?"
-        description="Это действие нельзя отменить."
-        variant="danger"
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1 rounded-2xl"
-              onClick={() => setConfirmOpen(false)}
-              disabled={isDeleting}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Удаление..." : "Удалить"}
-            </Button>
-          </>
-        }
-      />
+      <div className="no-export" data-export-hide="true">
+        <OriginModal
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          originRect={deleteOriginRect}
+          title="Удалить заказ?"
+          description="Это действие нельзя отменить."
+          variant="danger"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 rounded-2xl"
+                onClick={() => setConfirmOpen(false)}
+                disabled={isDeleting}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Удаление..." : "Удалить"}
+              </Button>
+            </>
+          }
+        />
+      </div>
     </div>
   );
 }
