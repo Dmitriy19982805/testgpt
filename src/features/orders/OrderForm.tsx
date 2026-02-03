@@ -23,6 +23,12 @@ const schema = z
     status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
     pickupOrDelivery: z.enum(["pickup", "delivery"]),
     address: z.string().optional(),
+    dessertType: z.string().optional(),
+    recipeId: z.string().optional(),
+    flavor: z.string().optional(),
+    size: z.string().optional(),
+    inscriptionText: z.string().optional(),
+    decorationNotes: z.string().optional(),
     designNotes: z.string().optional(),
     priceTotal: z.coerce.number().min(0),
     deposit: z.coerce.number().min(0),
@@ -67,7 +73,7 @@ export function OrderFormContent({
   layout = "default",
   onClose,
 }: OrderFormContentProps) {
-  const { customers, orders, addOrder, updateOrder, settings } = useAppStore();
+  const { customers, orders, recipes, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
   const [references, setReferences] = useState<
     { id: string; name: string; urlOrData: string }[]
@@ -87,6 +93,12 @@ export function OrderFormContent({
       status: toFormStatus(initialOrder?.status ?? "confirmed"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
       address: initialOrder?.address ?? "",
+      dessertType: initialOrder?.dessertType ?? "",
+      recipeId: initialOrder?.recipeId ?? "",
+      flavor: initialOrder?.flavor ?? "",
+      size: initialOrder?.size ?? "",
+      inscriptionText: initialOrder?.inscriptionText ?? "",
+      decorationNotes: initialOrder?.decorationNotes ?? "",
       designNotes: initialOrder?.designNotes ?? "",
       priceTotal: initialOrder?.price.total ?? 0,
       deposit:
@@ -121,6 +133,9 @@ export function OrderFormContent({
   const priceTotal = watch("priceTotal");
   const deposit = watch("deposit");
   const pickupOrDelivery = watch("pickupOrDelivery");
+  const dessertType = watch("dessertType");
+  const recipeId = watch("recipeId");
+  const flavor = watch("flavor");
   const total = Number(priceTotal) || 0;
   const paid = Number(deposit) || 0;
   const remaining = Math.max(total - paid, 0);
@@ -198,6 +213,12 @@ export function OrderFormContent({
         dueTime,
         customerId,
         customerName,
+        dessertType: values.dessertType ?? "",
+        recipeId: values.recipeId ?? "",
+        flavor: values.flavor ?? "",
+        size: values.size ?? "",
+        inscriptionText: values.inscriptionText ?? "",
+        decorationNotes: values.decorationNotes ?? "",
         designNotes: values.designNotes ?? "",
         pickupOrDelivery: values.pickupOrDelivery,
         address: values.address ?? "",
@@ -225,9 +246,14 @@ export function OrderFormContent({
       dueTime,
       customerId,
       customerName,
+      dessertType: values.dessertType ?? "",
+      recipeId: values.recipeId ?? "",
+      flavor: values.flavor ?? "",
+      size: values.size ?? "",
+      inscriptionText: values.inscriptionText ?? "",
+      decorationNotes: values.decorationNotes ?? "",
       items: [],
       designNotes: values.designNotes ?? "",
-      inscriptionText: "",
       allergens: "",
       references,
       pickupOrDelivery: values.pickupOrDelivery,
@@ -287,6 +313,31 @@ export function OrderFormContent({
     "rounded-3xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60";
 
   const isModalLayout = layout === "modal";
+  const selectedRecipe = recipes.find((recipe) => recipe.id === recipeId);
+  const dessertSizePlaceholder = useMemo(() => {
+    switch (dessertType) {
+      case "Торт":
+        return "Например, 1.5 кг или 18 см";
+      case "Бенто":
+        return "Например, 10–12 см";
+      case "Капкейки":
+        return "Например, 12 шт";
+      case "Макаронс":
+        return "Например, 24 шт";
+      case "Десертный бокс":
+        return "Например, 6 шт";
+      case "Другое":
+        return "Опишите размер";
+      default:
+        return "Выберите тип, чтобы увидеть подсказку";
+    }
+  }, [dessertType]);
+
+  useEffect(() => {
+    if (recipeId && selectedRecipe && !flavor) {
+      setValue("flavor", selectedRecipe.name, { shouldValidate: false });
+    }
+  }, [flavor, recipeId, selectedRecipe, setValue]);
 
   return (
     <form
@@ -418,6 +469,73 @@ export function OrderFormContent({
 
           {step === 1 && (
             <div className={cn("space-y-3", sectionClass)}>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Десерт</p>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Тип десерта</label>
+                  <select
+                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                    {...register("dessertType")}
+                  >
+                    <option value="">Выберите тип</option>
+                    {["Торт", "Бенто", "Капкейки", "Макаронс", "Десертный бокс", "Другое"].map(
+                      (type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Рецепт</label>
+                  <select
+                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                    {...register("recipeId")}
+                  >
+                    <option value="">Без рецепта</option>
+                    {recipes.map((recipe) => (
+                      <option key={recipe.id} value={recipe.id}>
+                        {recipe.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Вкус</label>
+                  <Input
+                    placeholder="Например, ваниль, клубника, шоколад"
+                    {...register("flavor")}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Размер</label>
+                  <Input placeholder={dessertSizePlaceholder} {...register("size")} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Оформление</p>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Надпись</label>
+                  <Input
+                    placeholder="Текст надписи (если нужна)"
+                    {...register("inscriptionText")}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500">Декор</label>
+                  <Input
+                    placeholder="Короткие заметки по декору"
+                    {...register("decorationNotes")}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className={cn("space-y-3", sectionClass)}>
               <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
               <Input type="number" step="0.01" {...register("priceTotal")} />
               <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
@@ -439,7 +557,7 @@ export function OrderFormContent({
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className={cn("space-y-3", sectionClass)}>
               <label className="text-sm font-medium">{t.orders.form.notesLabel}</label>
               <textarea
@@ -450,7 +568,7 @@ export function OrderFormContent({
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className={cn("space-y-4", sectionClass)}>
               <input type="file" accept="image/*" onChange={handleFile} />
               <div className="grid gap-3 sm:grid-cols-2">

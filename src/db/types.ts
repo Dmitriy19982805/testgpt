@@ -74,9 +74,14 @@ export interface Order {
   dueTime?: string;
   customerId: string;
   customerName: string;
+  dessertType?: string;
+  recipeId?: string;
+  flavor?: string;
+  size?: string;
+  inscriptionText?: string;
+  decorationNotes?: string;
   items: OrderItem[];
   designNotes: string;
-  inscriptionText: string;
   allergens: string;
   references: OrderReference[];
   pickupOrDelivery: PickupOrDelivery;
