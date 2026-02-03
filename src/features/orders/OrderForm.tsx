@@ -12,12 +12,14 @@ import { t } from "../../i18n";
 import { formatCurrency } from "../../utils/currency";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { CustomerForm } from "../customers/CustomerForm";
+import { resolveDueTime, toDueAtIso } from "../../utils/date";
 
 const schema = z
   .object({
     customerName: z.string().min(2, t.orders.form.customerNameRequired),
     customerId: z.string().optional(),
     dueAt: z.string().min(1, t.orders.form.dueDateRequired),
+    dueTime: z.string().optional(),
     status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
     pickupOrDelivery: z.enum(["pickup", "delivery"]),
     address: z.string().optional(),
@@ -81,6 +83,7 @@ export function OrderFormContent({
         "",
       customerId: initialOrder?.customerId ?? "",
       dueAt: initialOrder ? initialOrder.dueAt.slice(0, 10) : "",
+      dueTime: resolveDueTime(initialOrder?.dueTime),
       status: toFormStatus(initialOrder?.status ?? "confirmed"),
       pickupOrDelivery: initialOrder?.pickupOrDelivery ?? "pickup",
       address: initialOrder?.address ?? "",
@@ -166,6 +169,8 @@ export function OrderFormContent({
     const selectedCustomer = customers.find((c) => c.id === values.customerId);
     const customerId = selectedCustomer?.id ?? "";
     const customerName = selectedCustomer?.name ?? trimmedCustomerName;
+    const dueTime = resolveDueTime(values.dueTime);
+    const dueAt = toDueAtIso(values.dueAt, dueTime);
     if (initialOrder) {
       const depositPaymentIndex = initialOrder.payments.findIndex(
         (payment) => payment.type === "deposit"
@@ -189,7 +194,8 @@ export function OrderFormContent({
       const updatedOrder: Order = {
         ...initialOrder,
         status: values.status,
-        dueAt: new Date(values.dueAt).toISOString(),
+        dueAt,
+        dueTime,
         customerId,
         customerName,
         designNotes: values.designNotes ?? "",
@@ -215,7 +221,8 @@ export function OrderFormContent({
       orderNo: createOrderNumber(orders.length),
       status: values.status,
       createdAt: new Date().toISOString(),
-      dueAt: new Date(values.dueAt).toISOString(),
+      dueAt,
+      dueTime,
       customerId,
       customerName,
       items: [],
@@ -361,11 +368,24 @@ export function OrderFormContent({
               {errors.customerName ? (
                 <p className="text-xs text-rose-500">{errors.customerName.message}</p>
               ) : null}
-              <label className="text-sm font-medium">{t.orders.form.dueDateLabel}</label>
-              <Input type="date" {...register("dueAt")} />
-              {errors.dueAt ? (
-                <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
-              ) : null}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Сдача заказа</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500">
+                      {t.orders.form.dueDateLabel}
+                    </label>
+                    <Input type="date" {...register("dueAt")} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500">Время готовности</label>
+                    <Input type="time" {...register("dueTime")} />
+                  </div>
+                </div>
+                {errors.dueAt ? (
+                  <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
+                ) : null}
+              </div>
               <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
               <select
                 className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"

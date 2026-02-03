@@ -2,7 +2,7 @@ import { Badge } from "../../components/ui/badge";
 import { CenterModal } from "../../components/common/CenterModal";
 import { Button } from "../../components/ui/button";
 import { formatCurrency } from "../../utils/currency";
-import { formatDateTime } from "../../utils/date";
+import { formatDueDateTime } from "../../utils/date";
 import { t } from "../../i18n";
 import { useAppStore } from "../../store/useAppStore";
 import type { Order } from "../../db/types";
@@ -43,7 +43,9 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
   const customerPhone = customer?.phone;
   const secondaryContact = customer?.secondaryContact;
   const statusLabel = t.orders.statusLabels[order.status] ?? order.status;
-  const dueLabel = order.dueAt ? formatDateTime(order.dueAt) : "—";
+  const dueLabel = order.dueAt
+    ? formatDueDateTime(order.dueAt, order.dueTime)
+    : "—";
   const fulfillmentLabel =
     t.orders.fulfillment[order.pickupOrDelivery] ?? order.pickupOrDelivery;
 
