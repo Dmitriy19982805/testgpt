@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { Home, Notebook, Users, CakeSlice, Package, Wallet, Settings } from "lucide-react";
 import { cn } from "../components/ui/utils";
 import { t } from "../i18n";
+import { useAppStore } from "../store/useAppStore";
 
 interface AppShellProps {
   auth: { logout: () => void };
@@ -18,14 +19,27 @@ const navItems = [
 ];
 
 export function AppShell({ auth }: AppShellProps) {
+  const { settings } = useAppStore();
+  const businessName = settings?.businessName?.trim();
+  const cabinetLabel = `${t.appShell.cabinet} ${t.appShell.confectioner.toLowerCase()}`;
+  const hasBusinessName = Boolean(businessName);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
       <div className="mx-auto flex min-h-screen max-w-7xl">
         <aside className="hidden w-64 flex-col border-r border-slate-200/60 bg-white/70 px-5 py-8 backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-950/70 md:flex">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-widest text-slate-400">{t.appShell.cabinet}</p>
-              <h2 className="text-xl font-semibold">{t.appShell.confectioner}</h2>
+              {hasBusinessName ? (
+                <div className="space-y-1">
+                  <p className="max-w-[200px] truncate text-lg font-semibold text-slate-900 dark:text-slate-50">
+                    {businessName}
+                  </p>
+                  <p className="text-xs font-medium text-slate-400">{cabinetLabel}</p>
+                </div>
+              ) : (
+                <h2 className="text-xl font-semibold">{cabinetLabel}</h2>
+              )}
             </div>
           </div>
           <nav className="mt-8 flex flex-1 flex-col gap-2">
