@@ -117,6 +117,7 @@ export function OrderFormContent({
 
   const priceTotal = watch("priceTotal");
   const deposit = watch("deposit");
+  const pickupOrDelivery = watch("pickupOrDelivery");
   const total = Number(priceTotal) || 0;
   const paid = Number(deposit) || 0;
   const remaining = Math.max(total - paid, 0);
@@ -365,11 +366,6 @@ export function OrderFormContent({
               {errors.dueAt ? (
                 <p className="text-xs text-rose-500">{errors.dueAt.message}</p>
               ) : null}
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className={cn("space-y-3", sectionClass)}>
               <label className="text-sm font-medium">{t.orders.form.statusLabel}</label>
               <select
                 className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
@@ -391,12 +387,16 @@ export function OrderFormContent({
                 <option value="pickup">{t.orders.fulfillment.pickup}</option>
                 <option value="delivery">{t.orders.fulfillment.delivery}</option>
               </select>
-              <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
-              <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
+              {pickupOrDelivery === "delivery" ? (
+                <>
+                  <label className="text-sm font-medium">{t.orders.form.addressLabel}</label>
+                  <Input placeholder={t.orders.form.addressPlaceholder} {...register("address")} />
+                </>
+              ) : null}
             </div>
           )}
 
-          {step === 2 && (
+          {step === 1 && (
             <div className={cn("space-y-3", sectionClass)}>
               <label className="text-sm font-medium">{t.orders.form.totalPriceLabel}</label>
               <Input type="number" step="0.01" {...register("priceTotal")} />
@@ -419,7 +419,7 @@ export function OrderFormContent({
             </div>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <div className={cn("space-y-3", sectionClass)}>
               <label className="text-sm font-medium">{t.orders.form.notesLabel}</label>
               <textarea
@@ -430,7 +430,7 @@ export function OrderFormContent({
             </div>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <div className={cn("space-y-4", sectionClass)}>
               <input type="file" accept="image/*" onChange={handleFile} />
               <div className="grid gap-3 sm:grid-cols-2">

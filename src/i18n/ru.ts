@@ -80,7 +80,7 @@ export const ru = {
       more: "ещё",
     },
     form: {
-      steps: ["Клиент", "Детали", "Цена", "Заметки", "Референсы"],
+      steps: ["Основное", "Цена", "Заметки", "Референсы"],
       customerNameLabel: "Имя клиента",
       customerNamePlaceholder: "Имя клиента",
       customerNameRequired: "Укажите имя клиента",
