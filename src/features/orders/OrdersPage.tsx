@@ -179,7 +179,7 @@ export function OrdersPage() {
           }}
           originRect={formOriginRect}
           title={editingOrder ? "Редактирование заказа" : "Новый заказ"}
-          className="w-[min(720px,92vw)] h-[min(680px,82vh)] rounded-[28px] bg-white/90 dark:bg-slate-900/70 shadow-xl overflow-hidden"
+          className="w-[92vw] max-w-[720px] h-[82vh] max-h-[680px] rounded-[28px] bg-white/90 dark:bg-slate-900/70 shadow-xl overflow-hidden"
           contentClassName="flex min-h-0 flex-1 flex-col"
         >
           <OrderFormContent
