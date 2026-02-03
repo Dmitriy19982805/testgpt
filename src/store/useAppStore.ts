@@ -137,6 +137,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         dueTime: DEFAULT_DUE_TIME,
         customerId,
         customerName: customer.name,
+        dessertType: demo.orderItemType,
+        recipeId: recipes[0]?.id,
+        flavor: "Ваниль",
+        size: "2 яруса",
+        inscriptionText: demo.inscriptionText,
+        decorationNotes: "Жемчужная посыпка и живые цветы.",
         items: [
           {
             type: demo.orderItemType,
@@ -147,7 +153,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           },
         ],
         designNotes: demo.designNotes,
-        inscriptionText: demo.inscriptionText,
         allergens: demo.allergens,
         references: [],
         pickupOrDelivery: "delivery",

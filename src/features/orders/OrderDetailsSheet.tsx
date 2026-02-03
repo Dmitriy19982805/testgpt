@@ -32,7 +32,7 @@ const valueOrDash = (value?: string | number | null) => {
 };
 
 export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsSheetProps) {
-  const { customers, settings } = useAppStore();
+  const { customers, recipes, settings } = useAppStore();
 
   if (!order) {
     return null;
@@ -48,6 +48,7 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
     : "—";
   const fulfillmentLabel =
     t.orders.fulfillment[order.pickupOrDelivery] ?? order.pickupOrDelivery;
+  const recipeName = recipes.find((recipe) => recipe.id === order.recipeId)?.name;
 
   const priceTotal = order.price.total;
   const deposit = order.payments
@@ -142,6 +143,50 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
             </div>
           </section>
         </div>
+
+        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Детали
+          </h4>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Тип десерта</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(order.dessertType)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Рецепт</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(recipeName)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Вкус</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(order.flavor)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Размер</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(order.size)}
+              </p>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-xs text-slate-500">Надпись</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(order.inscriptionText)}
+              </p>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-xs text-slate-500">Декор</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {valueOrDash(order.decorationNotes)}
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
