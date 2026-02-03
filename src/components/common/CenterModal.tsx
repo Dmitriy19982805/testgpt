@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface CenterModalProps {
@@ -129,6 +130,10 @@ export function CenterModal({
     return null;
   }
 
+  if (typeof document === "undefined") {
+    return null;
+  }
+
   const handleClose = () => {
     onOpenChange(false);
   };
@@ -142,7 +147,7 @@ export function CenterModal({
   const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
   const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-y-auto";
 
-  return (
+  return createPortal(
     <div className={containerClasses} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
@@ -199,6 +204,7 @@ export function CenterModal({
           {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
