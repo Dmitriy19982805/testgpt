@@ -71,6 +71,7 @@ export interface Order {
   status: "draft" | "confirmed" | "in-progress" | "ready" | "completed" | "cancelled";
   createdAt: string;
   dueAt: string;
+  dueTime?: string;
   customerId: string;
   customerName: string;
   items: OrderItem[];

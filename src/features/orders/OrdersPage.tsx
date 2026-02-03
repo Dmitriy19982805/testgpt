@@ -9,7 +9,7 @@ import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../components/ui/utils";
 import { useAppStore } from "../../store/useAppStore";
-import { formatDate } from "../../utils/date";
+import { formatDueDateTime } from "../../utils/date";
 import { OrderForm, OrderFormContent } from "./OrderForm";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Link } from "react-router-dom";
@@ -254,7 +254,7 @@ export function OrdersPage() {
                     <p className="text-base font-semibold">{customerLabel}</p>
                     <p className="text-xs text-slate-500">
                       {order.orderNo} •{" "}
-                      {format(new Date(order.dueAt), "d MMM, HH:mm", { locale: ruLocale })}
+                      {formatDueDateTime(order.dueAt, order.dueTime, "d MMM, HH:mm")}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
@@ -369,7 +369,7 @@ export function OrdersPage() {
                     <p className="text-sm text-slate-500">{order.orderNo}</p>
                     <h3 className="text-lg font-semibold">{customerLabel}</h3>
                     <p className="text-sm text-slate-500">
-                      {t.orders.duePrefix} {formatDate(order.dueAt)}
+                      {t.orders.duePrefix} {formatDueDateTime(order.dueAt, order.dueTime)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -475,7 +475,7 @@ export function OrdersPage() {
                         </div>
                       </div>
                       <p className="text-xs text-slate-500">
-                        {t.orders.duePrefix} {formatDate(order.dueAt)}
+                        {t.orders.duePrefix} {formatDueDateTime(order.dueAt, order.dueTime)}
                       </p>
                     </div>
                   ))}

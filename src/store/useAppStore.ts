@@ -3,6 +3,7 @@ import { db } from "../db";
 import type { Customer, Ingredient, Order, Recipe, Settings } from "../db/types";
 import { createId, createOrderNumber } from "../utils/ids";
 import { t } from "../i18n";
+import { DEFAULT_DUE_TIME, toDueAtIso } from "../utils/date";
 
 interface AppState {
   customers: Customer[];
@@ -129,7 +130,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         orderNo: createOrderNumber(0),
         status: "confirmed",
         createdAt: now.toISOString(),
-        dueAt: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+        dueAt: toDueAtIso(
+          new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+          DEFAULT_DUE_TIME
+        ),
+        dueTime: DEFAULT_DUE_TIME,
         customerId,
         customerName: customer.name,
         items: [
