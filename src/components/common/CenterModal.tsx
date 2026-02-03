@@ -8,6 +8,10 @@ interface CenterModalProps {
   description?: string;
   children?: ReactNode;
   footer?: ReactNode;
+  className?: string;
+  headerClassName?: string;
+  bodyClassName?: string;
+  showCloseButton?: boolean;
 }
 
 export function CenterModal({
@@ -17,6 +21,10 @@ export function CenterModal({
   description,
   children,
   footer,
+  className,
+  headerClassName,
+  bodyClassName,
+  showCloseButton = false,
 }: CenterModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -121,40 +129,64 @@ export function CenterModal({
     onOpenChange(false);
   };
 
+  const baseModalClassName =
+    "relative z-[60] w-full transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center ";
+  const defaultShellClassName =
+    "glass-card max-w-[520px] rounded-2xl border border-white/40 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] dark:border-slate-800/70";
+  const shellClassName = className ?? defaultShellClassName;
+  const headerClasses = headerClassName ?? "space-y-1";
+  const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <button
         type="button"
         className={
-          "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
         onClick={handleClose}
       />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={description ? descriptionId : undefined}
-        className={
-          "glass-card relative z-[60] w-full max-w-[520px] rounded-2xl border border-white/40 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center " +
-          (isActive ? "opacity-100 scale-100" : "opacity-0 scale-[0.96]")
-        }
-      >
-        <div className="space-y-1">
-          <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            {title}
-          </h2>
-          {description ? (
-            <p id={descriptionId} className="text-sm text-slate-500 dark:text-slate-400">
-              {description}
-            </p>
-          ) : null}
+      <div className="relative flex min-h-full w-full items-center justify-center p-4">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description ? descriptionId : undefined}
+          className={
+            `${baseModalClassName}${shellClassName} ` +
+            (isActive ? "opacity-100 scale-100" : "opacity-0 scale-[0.96]")
+          }
+        >
+          <div className={headerClasses}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                  {title}
+                </h2>
+                {description ? (
+                  <p id={descriptionId} className="text-sm text-slate-500 dark:text-slate-400">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              {showCloseButton ? (
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-full border border-slate-200/70 p-2 text-slate-500 transition hover:text-slate-900 dark:border-slate-700/70 dark:text-slate-300 dark:hover:text-slate-50"
+                  aria-label="Закрыть"
+                >
+                  <span className="text-lg leading-none">×</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+          {children ? <div className={bodyClasses}>{children}</div> : null}
+          {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
         </div>
-        {children ? <div className="mt-4 space-y-4">{children}</div> : null}
-        {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
       </div>
     </div>
   );
