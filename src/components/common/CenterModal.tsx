@@ -112,13 +112,15 @@ export function CenterModal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
         onOpenChange(false);
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
       lastFocusedRef.current?.focus();
     };
   }, [open, onOpenChange]);
@@ -141,7 +143,7 @@ export function CenterModal({
   const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-y-auto";
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className={
@@ -149,7 +151,10 @@ export function CenterModal({
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
-        onClick={handleClose}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleClose();
+        }}
       />
       <div className="relative flex min-h-full w-full items-center justify-center p-4">
         <div
@@ -160,8 +165,11 @@ export function CenterModal({
           aria-describedby={description ? descriptionId : undefined}
           className={
             `${baseModalClassName}${shellClassName} ` +
-            (isActive ? "opacity-100 scale-100" : "opacity-0 scale-[0.96]")
+            (isActive
+              ? "opacity-100 scale-100 translate-y-0"
+              : "opacity-0 scale-[0.98] translate-y-3")
           }
+          onClick={(event) => event.stopPropagation()}
         >
           <div className={headerClasses}>
             <div className="flex items-start justify-between gap-4">

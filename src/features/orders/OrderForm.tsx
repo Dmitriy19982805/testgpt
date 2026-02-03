@@ -10,9 +10,8 @@ import { useAppStore } from "../../store/useAppStore";
 import type { Order } from "../../db/types";
 import { t } from "../../i18n";
 import { formatCurrency } from "../../utils/currency";
-import { DrawerSheet } from "../../components/common/DrawerSheet";
-import { CustomerForm } from "../customers/CustomerForm";
 import { resolveDueTime, toDueAtIso } from "../../utils/date";
+import { NewCustomerModal } from "../customers/NewCustomerModal";
 
 const schema = z
   .object({
@@ -635,22 +634,14 @@ export function OrderFormContent({
         </div>
       </div>
 
-      <DrawerSheet
+      <NewCustomerModal
         open={showCustomerForm}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowCustomerForm(false);
-          }
+        onClose={() => setShowCustomerForm(false)}
+        onCreated={(customer) => {
+          handleSelectCustomer({ id: customer.id, name: customer.name });
+          setShowCustomerForm(false);
         }}
-        title="Новый клиент"
-      >
-        <CustomerForm
-          onSaved={(customer) => {
-            setShowCustomerForm(false);
-            handleSelectCustomer({ id: customer.id, name: customer.name });
-          }}
-        />
-      </DrawerSheet>
+      />
     </form>
   );
 }
