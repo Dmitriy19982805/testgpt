@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { addDays, isSameDay } from "date-fns";
 import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -7,9 +7,13 @@ import { Badge } from "../../components/ui/badge";
 import { useAppStore } from "../../store/useAppStore";
 import { formatDate } from "../../utils/date";
 import { t } from "../../i18n";
+import { OrderDetailsSheet } from "./OrderDetailsSheet";
+import type { Order } from "../../db/types";
 
 export function DashboardPage() {
   const { orders, customers } = useAppStore();
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const today = new Date();
   const upcoming = useMemo(
@@ -30,6 +34,11 @@ export function DashboardPage() {
       { total: 0 } as Record<string, number>
     );
   }, [orders]);
+
+  const openDetails = (order: Order) => {
+    setDetailsOrder(order);
+    setDetailsOpen(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -55,9 +64,11 @@ export function DashboardPage() {
               </p>
             ) : (
               orders.slice(0, 4).map((order) => (
-                <div
+                <button
                   key={order.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-3 text-sm dark:border-slate-800/60 dark:bg-slate-900/60"
+                  type="button"
+                  onClick={() => openDetails(order)}
+                  className="flex w-full items-center justify-between rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-3 text-left text-sm transition hover:border-slate-300/70 hover:bg-white/90 active:scale-[0.99] dark:border-slate-800/60 dark:bg-slate-900/60 dark:hover:border-slate-700/70 dark:hover:bg-slate-900/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70"
                 >
                   <div>
                     <p className="font-medium">{order.orderNo}</p>
@@ -68,7 +79,7 @@ export function DashboardPage() {
                   <Badge tone={order.status === "confirmed" ? "info" : "default"}>
                     {t.orders.statusLabels[order.status] ?? order.status}
                   </Badge>
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -97,6 +108,17 @@ export function DashboardPage() {
           </div>
         </GlassCard>
       </div>
+
+      <OrderDetailsSheet
+        open={detailsOpen}
+        order={detailsOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsOpen(false);
+            setDetailsOrder(null);
+          }
+        }}
+      />
     </div>
   );
 }
