@@ -5,12 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { useAppStore } from "../../store/useAppStore";
-import { db } from "../../db";
-import { createId } from "../../utils/ids";
 import type { Customer } from "../../db/types";
 import { t } from "../../i18n";
 
-const minimumContactMessage = "Введите хотя бы имя или телефон/доп. контакт";
+const minimumContactMessage = "Введите хотя бы имя или телефон";
 
 const schema = z
   .object({
@@ -19,9 +17,7 @@ const schema = z
     secondaryContact: z.string().trim().or(z.literal("")),
   })
   .superRefine((values, ctx) => {
-    const hasMinimum = [values.name, values.phone, values.secondaryContact].some(
-      (value) => value.trim().length > 0
-    );
+    const hasMinimum = [values.name, values.phone].some((value) => value.trim().length > 0);
     if (!hasMinimum) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -39,7 +35,7 @@ interface CustomerFormProps {
 }
 
 export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
-  const { loadAll } = useAppStore();
+  const { addCustomer, updateCustomer } = useAppStore();
   const [showMinimumError, setShowMinimumError] = useState(false);
   const {
     register,
@@ -49,17 +45,10 @@ export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
     watch,
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  const [nameValue, phoneValue, secondaryValue] = watch([
-    "name",
-    "phone",
-    "secondaryContact",
-  ]);
+  const [nameValue, phoneValue] = watch(["name", "phone"]);
   const isMinimumFilled = useMemo(
-    () =>
-      [nameValue, phoneValue, secondaryValue].some(
-        (value) => value?.trim().length
-      ),
-    [nameValue, phoneValue, secondaryValue]
+    () => [nameValue, phoneValue].some((value) => value?.trim().length),
+    [nameValue, phoneValue]
   );
 
   useEffect(() => {
@@ -82,30 +71,27 @@ export function CustomerForm({ initialCustomer, onSaved }: CustomerFormProps) {
   }, [initialCustomer, reset]);
 
   const onSubmit = async (values: FormValues) => {
-    let customer: Customer;
-
+    const resolvedName = values.name.trim() || values.phone.trim();
     if (initialCustomer) {
-      customer = {
+      const customer: Customer = {
         ...initialCustomer,
-        name: values.name.trim(),
+        name: resolvedName,
         phone: values.phone.trim(),
         secondaryContact: values.secondaryContact.trim() || "",
       };
+      await updateCustomer(customer);
+      onSaved?.(customer);
+      return;
     } else {
-      customer = {
-        id: createId("cust"),
-        name: values.name.trim(),
+      const customer = await addCustomer({
+        name: resolvedName,
         phone: values.phone.trim(),
         secondaryContact: values.secondaryContact.trim() || "",
         notes: "",
         tags: [],
-        createdAt: new Date().toISOString(),
-      };
+      });
+      onSaved?.(customer);
     }
-
-    await db.customers.put(customer);
-    await loadAll();
-    onSaved?.(customer);
   };
 
   return (

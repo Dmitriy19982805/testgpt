@@ -16,6 +16,10 @@ interface AppState {
   saveSettings: (settings: Settings) => Promise<void>;
   seedDemo: () => Promise<void>;
   clearAll: () => Promise<void>;
+  addCustomer: (
+    customer: Omit<Customer, "id" | "createdAt"> & Partial<Pick<Customer, "id" | "createdAt">>
+  ) => Promise<Customer>;
+  updateCustomer: (customer: Customer) => Promise<Customer>;
   addOrder: (order: Order) => Promise<void>;
   updateOrder: (order: Order) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
@@ -210,6 +214,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       await db.recipes.clear();
     });
     set({ customers: [], orders: [], ingredients: [], recipes: [] });
+  },
+  addCustomer: async (customerInput) => {
+    const now = new Date().toISOString();
+    const customer: Customer = {
+      id: customerInput.id ?? createId("cust"),
+      name: customerInput.name.trim(),
+      phone: customerInput.phone.trim(),
+      secondaryContact: customerInput.secondaryContact?.trim() ?? "",
+      notes: customerInput.notes ?? "",
+      tags: customerInput.tags ?? [],
+      createdAt: customerInput.createdAt ?? now,
+    };
+    await db.customers.put(customer);
+    set({ customers: [...get().customers, customer] });
+    return customer;
+  },
+  updateCustomer: async (customer) => {
+    await db.customers.put(customer);
+    set({
+      customers: get().customers.map((item) => (item.id === customer.id ? customer : item)),
+    });
+    return customer;
   },
   addOrder: async (order) => {
     await db.orders.put(order);
