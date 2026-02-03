@@ -1,6 +1,5 @@
 import { Badge } from "../../components/ui/badge";
 import { CenterModal } from "../../components/common/CenterModal";
-import { Button } from "../../components/ui/button";
 import { formatCurrency } from "../../utils/currency";
 import { formatDueDateTime } from "../../utils/date";
 import { t } from "../../i18n";
@@ -71,166 +70,133 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
       open={open}
       onOpenChange={onOpenChange}
       title="Детали заказа"
-      footer={
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1 rounded-2xl"
-          onClick={() => onOpenChange(false)}
-        >
-          Закрыть
-        </Button>
-      }
+      className="bg-white rounded-[28px] shadow-2xl w-[92vw] max-w-[920px] p-6 md:p-8"
+      bodyClassName="mt-6 space-y-4"
+      showCloseButton
     >
-      <div className="max-h-[80vh] space-y-3 overflow-y-auto pr-1">
-        <div className="space-y-3 rounded-3xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Заказ</p>
-              <h3 className="text-xl font-semibold">Заказ №{order.orderNo || order.id}</h3>
-            </div>
-            <Badge tone={statusToneMap[order.status]}>{statusLabel}</Badge>
+      <section className="rounded-2xl border border-slate-200/70 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Заказ</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Заказ №{order.orderNo || order.id}
+            </h3>
+            <div className="text-sm text-slate-500">Срок: {dueLabel}</div>
           </div>
-          <div className="text-sm text-slate-500">Срок: {dueLabel}</div>
+          <Badge tone={statusToneMap[order.status]}>{statusLabel}</Badge>
         </div>
+      </section>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Клиент
-            </h4>
-            <div className="grid gap-3 text-sm sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-xs text-slate-500">Имя</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {valueOrDash(customerName)}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-slate-500">Телефон</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {valueOrDash(customerPhone)}
-                </p>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <p className="text-xs text-slate-500">Доп. контакт</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {valueOrDash(secondaryContact)}
-                </p>
-              </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Клиент</h4>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Имя</p>
+              <p className="font-medium text-slate-900">{valueOrDash(customerName)}</p>
             </div>
-          </section>
-
-          <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Доставка
-            </h4>
-            <div className="grid gap-3 text-sm sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-xs text-slate-500">Тип</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {valueOrDash(fulfillmentLabel)}
-                </p>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <p className="text-xs text-slate-500">Адрес</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {order.pickupOrDelivery === "delivery"
-                    ? valueOrDash(order.address)
-                    : "—"}
-                </p>
-              </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Телефон</p>
+              <p className="font-medium text-slate-900">{valueOrDash(customerPhone)}</p>
             </div>
-          </section>
-        </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-xs text-slate-500">Доп. контакт</p>
+              <p className="font-medium text-slate-900">{valueOrDash(secondaryContact)}</p>
+            </div>
+          </div>
+        </section>
 
-        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
+        <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Детали
+            Получение/Доставка
           </h4>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-xs text-slate-500">Тип десерта</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.dessertType)}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Рецепт</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(recipeName)}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Вкус</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.flavor)}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Размер</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.size)}
-              </p>
+              <p className="text-xs text-slate-500">Тип</p>
+              <p className="font-medium text-slate-900">{valueOrDash(fulfillmentLabel)}</p>
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Надпись</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.inscriptionText)}
-              </p>
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Декор</p>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.decorationNotes)}
+              <p className="text-xs text-slate-500">Адрес</p>
+              <p className="font-medium text-slate-900">
+                {order.pickupOrDelivery === "delivery" ? valueOrDash(order.address) : "—"}
               </p>
             </div>
           </div>
         </section>
+      </div>
 
-        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Сумма</span>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {renderCurrency(priceTotal)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Предоплата</span>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {renderCurrency(priceTotal === null || priceTotal === undefined ? null : deposit)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
-              <span>Остаток</span>
-              <span className="text-base font-semibold">{renderCurrency(remaining)}</span>
-            </div>
+      <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Детали изделия
+        </h4>
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Тип десерта</p>
+            <p className="font-medium text-slate-900">{valueOrDash(order.dessertType)}</p>
           </div>
-        </section>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Вкус</p>
+            <p className="font-medium text-slate-900">{valueOrDash(order.flavor)}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Размер</p>
+            <p className="font-medium text-slate-900">{valueOrDash(order.size)}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Рецепт</p>
+            <p className="font-medium text-slate-900">{valueOrDash(recipeName)}</p>
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <p className="text-xs text-slate-500">Надпись</p>
+            <p className="font-medium text-slate-900">{valueOrDash(order.inscriptionText)}</p>
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <p className="text-xs text-slate-500">Декор</p>
+            <p className="font-medium text-slate-900">{valueOrDash(order.decorationNotes)}</p>
+          </div>
+        </div>
+      </section>
 
-        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
+      <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
+        <div className="grid gap-3 text-sm sm:grid-cols-3">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2">
+            <span className="text-slate-500">Итоговая цена</span>
+            <span className="font-semibold text-slate-900">{renderCurrency(priceTotal)}</span>
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2">
+            <span className="text-slate-500">Аванс</span>
+            <span className="font-semibold text-slate-900">
+              {renderCurrency(priceTotal === null || priceTotal === undefined ? null : deposit)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700">
+            <span>Остаток</span>
+            <span className="text-base font-semibold">{renderCurrency(remaining)}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Пожелания и чек-лист
           </h4>
-          <div className="space-y-4 text-sm">
+          <div className="space-y-3 text-sm">
             <div>
               <p className="text-xs text-slate-500">Пожелания по дизайну</p>
-              <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
-                {valueOrDash(order.designNotes)}
-              </p>
+              <p className="mt-1 font-medium text-slate-900">{valueOrDash(order.designNotes)}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500">Чек-лист</p>
               {checklistItems.length === 0 ? (
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">—</p>
+                <p className="mt-1 font-medium text-slate-900">—</p>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {checklistItems.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center gap-2 rounded-2xl border border-slate-200/60 bg-white/70 px-3 py-2 text-sm dark:border-slate-800/60 dark:bg-slate-900/60"
+                      className="flex items-center gap-2 rounded-xl border border-slate-200/70 px-3 py-2 text-sm"
                     >
                       <span
                         className={
@@ -239,7 +205,7 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
                             : "h-2.5 w-2.5 rounded-full bg-slate-300"
                         }
                       />
-                      <span className="text-slate-800 dark:text-slate-100">{item.text}</span>
+                      <span className="text-slate-800">{item.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -248,10 +214,12 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
           </div>
         </section>
 
-        <section className="space-y-3 rounded-2xl border border-slate-200/50 bg-white/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/50">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Референсы</h4>
+        <section className="space-y-3 rounded-2xl border border-slate-200/70 p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Референсы
+          </h4>
           {references.length === 0 ? (
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">—</p>
+            <p className="text-sm font-medium text-slate-900">—</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {references.map((ref) => {
@@ -260,13 +228,13 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
                 return (
                   <div
                     key={ref.id}
-                    className="rounded-2xl border border-slate-200/60 bg-white/70 p-3 text-sm dark:border-slate-800/60 dark:bg-slate-900/60"
+                    className="rounded-xl border border-slate-200/70 p-3 text-sm"
                   >
                     {isImage ? (
                       <img
                         src={ref.urlOrData}
                         alt={ref.name}
-                        className="h-32 w-full rounded-xl object-cover"
+                        className="h-24 w-full rounded-lg object-cover"
                       />
                     ) : (
                       <a
