@@ -71,8 +71,8 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
       open={open}
       onOpenChange={onOpenChange}
       title="Детали заказа"
-      className="fixed left-1/2 top-1/2 w-[92vw] max-w-[960px] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
-      containerClassName="fixed inset-0 z-50 overflow-hidden"
+      className="w-[92vw] max-w-[960px] rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
+      containerClassName="fixed inset-0 z-50 h-screen w-screen overflow-hidden"
       bodyClassName="mt-3 grid gap-3"
       showCloseButton
     >
