@@ -9,6 +9,7 @@ interface CenterModalProps {
   children?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  containerClassName?: string;
   headerClassName?: string;
   bodyClassName?: string;
   showCloseButton?: boolean;
@@ -22,6 +23,7 @@ export function CenterModal({
   children,
   footer,
   className,
+  containerClassName,
   headerClassName,
   bodyClassName,
   showCloseButton = false,
@@ -136,9 +138,10 @@ export function CenterModal({
   const shellClassName = className ?? defaultShellClassName;
   const headerClasses = headerClassName ?? "space-y-1";
   const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
+  const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-y-auto";
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className={containerClasses}>
       <button
         type="button"
         className={
