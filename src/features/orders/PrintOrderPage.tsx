@@ -1,11 +1,12 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Button } from "../../components/ui/button";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, resolveDueTime } from "../../utils/date";
 import { t } from "../../i18n";
 import { OriginModal } from "../../components/common/OriginModal";
+import { toBlob } from "html-to-image";
 
 export function PrintOrderPage() {
   const { id } = useParams();
@@ -17,6 +18,9 @@ export function PrintOrderPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOriginRect, setDeleteOriginRect] = useState<DOMRect | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
 
   const handleDelete = async () => {
     if (!order) {
@@ -64,8 +68,57 @@ export function PrintOrderPage() {
     return formatCurrency(value, settings?.currency);
   };
 
+  const downloadImage = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShare = async () => {
+    if (!summaryRef.current) {
+      setExportError("Не удалось подготовить изображение. Попробуйте еще раз.");
+      return;
+    }
+    setExportError(null);
+    setIsExporting(true);
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+      const blob = await toBlob(summaryRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      if (!blob) {
+        throw new Error("blob-empty");
+      }
+      const filename = `order-${order.id}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const shareTitle = `Заказ ${order.orderNo || order.id}`;
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: shareTitle });
+      } else {
+        downloadImage(blob, filename);
+      }
+    } catch (error) {
+      console.error(error);
+      setExportError("Не удалось создать файл. Проверьте подключение и попробуйте снова.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 rounded-3xl bg-white p-8 text-slate-900 shadow-soft dark:bg-slate-900/80 dark:text-slate-50">
+    <div
+      ref={summaryRef}
+      className="space-y-6 rounded-3xl bg-white p-8 text-slate-900 shadow-soft dark:bg-slate-900/80 dark:text-slate-50"
+    >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -78,9 +131,12 @@ export function PrintOrderPage() {
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => window.print()}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" onClick={() => window.print()} disabled={isExporting}>
             {t.orders.print.print}
+          </Button>
+          <Button variant="outline" onClick={handleShare} disabled={isExporting}>
+            {isExporting ? "Готовим файл…" : "Отправить"}
           </Button>
           <Button
             variant="ghost"
@@ -89,11 +145,17 @@ export function PrintOrderPage() {
               setDeleteOriginRect(event.currentTarget.getBoundingClientRect());
               setConfirmOpen(true);
             }}
+            disabled={isExporting}
           >
             {t.orders.print.delete}
           </Button>
         </div>
       </div>
+      {exportError ? (
+        <p className="text-sm text-rose-500" role="status">
+          {exportError}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/70 p-4 dark:border-slate-800/60 dark:bg-slate-900/60">
