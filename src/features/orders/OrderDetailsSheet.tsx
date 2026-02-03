@@ -31,7 +31,7 @@ const valueOrDash = (value?: string | number | null) => {
 };
 
 export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsSheetProps) {
-  const { customers, recipes, settings } = useAppStore();
+  const { customers, settings } = useAppStore();
 
   if (!order) {
     return null;
@@ -47,8 +47,6 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
     : "—";
   const fulfillmentLabel =
     t.orders.fulfillment[order.pickupOrDelivery] ?? order.pickupOrDelivery;
-  const recipeName = recipes.find((recipe) => recipe.id === order.recipeId)?.name;
-
   const priceTotal = order.price.total;
   const deposit = order.payments
     .filter((payment) => payment.type === "deposit")
@@ -64,203 +62,214 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
 
   const checklistItems = order.checklist ?? [];
   const references = order.references ?? [];
+  const hasNotes = Boolean(order.designNotes?.trim());
+  const hasChecklist = checklistItems.length > 0;
+  const hasReferences = references.length > 0;
 
   return (
     <CenterModal
       open={open}
       onOpenChange={onOpenChange}
       title="Детали заказа"
-      className="fixed left-1/2 top-1/2 w-[92vw] max-w-[960px] max-h-[85vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] bg-white p-5 shadow-2xl md:p-6"
+      className="fixed left-1/2 top-1/2 w-[92vw] max-w-[960px] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
       containerClassName="fixed inset-0 z-50 overflow-hidden"
-      bodyClassName="mt-4 grid gap-3"
+      bodyClassName="mt-3 grid gap-3"
       showCloseButton
     >
-      <section className="rounded-2xl bg-slate-50/70 p-4">
+      <section className="rounded-2xl border border-slate-200/60 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Заказ</p>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">Заказ</p>
+            <h3 className="text-base font-semibold text-slate-900">
               Заказ №{order.orderNo || order.id}
             </h3>
-            <div className="text-sm text-slate-500">Срок: {dueLabel}</div>
+            <div className="text-xs text-slate-500">Дата и время: {dueLabel}</div>
           </div>
-          <Badge tone={statusToneMap[order.status]}>{statusLabel}</Badge>
+          <Badge tone={statusToneMap[order.status]} className="px-2 py-1 text-[11px]">
+            {statusLabel}
+          </Badge>
         </div>
       </section>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <section className="space-y-3 rounded-2xl bg-slate-50/70 p-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Клиент</h4>
-          <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Имя</p>
-              <p className="font-medium text-slate-900">{valueOrDash(customerName)}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500">Телефон</p>
-              <p className="font-medium text-slate-900">{valueOrDash(customerPhone)}</p>
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Доп. контакт</p>
-              <p className="font-medium text-slate-900">{valueOrDash(secondaryContact)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-3 rounded-2xl bg-slate-50/70 p-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Получение/Доставка
+        <section className="space-y-2 rounded-2xl border border-slate-200/60 p-3">
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Детали изделия
           </h4>
-          <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
             <div className="space-y-1">
               <p className="text-xs text-slate-500">Тип</p>
-              <p className="font-medium text-slate-900">{valueOrDash(fulfillmentLabel)}</p>
+              <p className="font-medium text-slate-900">{valueOrDash(order.dessertType)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Вкус</p>
+              <p className="font-medium text-slate-900">{valueOrDash(order.flavor)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Размер</p>
+              <p className="font-medium text-slate-900">{valueOrDash(order.size)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">Надпись</p>
+              <p className="font-medium text-slate-900">{valueOrDash(order.inscriptionText)}</p>
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <p className="text-xs text-slate-500">Адрес</p>
-              <p className="font-medium text-slate-900">
-                {order.pickupOrDelivery === "delivery" ? valueOrDash(order.address) : "—"}
-              </p>
+              <p className="text-xs text-slate-500">Декор</p>
+              <p className="font-medium text-slate-900">{valueOrDash(order.decorationNotes)}</p>
             </div>
           </div>
         </section>
+
+        <div className="grid gap-3">
+          <section className="space-y-2 rounded-2xl border border-slate-200/60 p-3">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Клиент
+            </h4>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Имя</p>
+                <p className="font-medium text-slate-900">{valueOrDash(customerName)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Телефон</p>
+                <p className="font-medium text-slate-900">{valueOrDash(customerPhone)}</p>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-xs text-slate-500">Доп. контакт</p>
+                <p className="font-medium text-slate-900">{valueOrDash(secondaryContact)}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-2 rounded-2xl border border-slate-200/60 p-3">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Получение / Доставка
+            </h4>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Тип</p>
+                <p className="font-medium text-slate-900">{valueOrDash(fulfillmentLabel)}</p>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-xs text-slate-500">Адрес</p>
+                <p className="font-medium text-slate-900">
+                  {order.pickupOrDelivery === "delivery" ? valueOrDash(order.address) : "—"}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
 
-      <section className="space-y-3 rounded-2xl bg-slate-50/70 p-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Детали изделия
-        </h4>
+      <section className="space-y-2 rounded-2xl border border-slate-200/60 p-3">
+        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
         <div className="grid gap-2 text-sm sm:grid-cols-3">
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Тип десерта</p>
-            <p className="font-medium text-slate-900">{valueOrDash(order.dessertType)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Вкус</p>
-            <p className="font-medium text-slate-900">{valueOrDash(order.flavor)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Размер</p>
-            <p className="font-medium text-slate-900">{valueOrDash(order.size)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Рецепт</p>
-            <p className="font-medium text-slate-900">{valueOrDash(recipeName)}</p>
-          </div>
-          <div className="space-y-1 sm:col-span-2">
-            <p className="text-xs text-slate-500">Надпись</p>
-            <p className="font-medium text-slate-900">{valueOrDash(order.inscriptionText)}</p>
-          </div>
-          <div className="space-y-1 sm:col-span-2">
-            <p className="text-xs text-slate-500">Декор</p>
-            <p className="font-medium text-slate-900">{valueOrDash(order.decorationNotes)}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-2xl bg-slate-50/70 p-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Оплата</h4>
-        <div className="grid gap-2 text-sm sm:grid-cols-3">
-          <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200/60 px-3 py-2">
             <span className="text-slate-500">Итоговая цена</span>
             <span className="font-semibold text-slate-900">{renderCurrency(priceTotal)}</span>
           </div>
-          <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200/60 px-3 py-2">
             <span className="text-slate-500">Аванс</span>
             <span className="font-semibold text-slate-900">
               {renderCurrency(priceTotal === null || priceTotal === undefined ? null : deposit)}
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700">
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50/60 px-3 py-2 text-emerald-700">
             <span>Остаток</span>
-            <span className="text-base font-semibold">{renderCurrency(remaining)}</span>
+            <span className="font-semibold">{renderCurrency(remaining)}</span>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <details className="group rounded-2xl bg-slate-50/70 p-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
-            <span>Заметки</span>
-            <span className="text-base text-slate-400 transition group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-3 text-sm text-slate-900">
-            <p className="font-medium">{valueOrDash(order.designNotes)}</p>
-          </div>
-        </details>
+      {(hasNotes || hasChecklist || hasReferences) && (
+        <div className="grid gap-3 lg:grid-cols-3">
+          {hasNotes && (
+            <details className="group rounded-2xl border border-slate-200/60 p-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span>Заметки</span>
+                <span className="text-base text-slate-400 transition group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <div className="mt-2 text-sm text-slate-900">
+                <p className="font-medium">{valueOrDash(order.designNotes)}</p>
+              </div>
+            </details>
+          )}
 
-        <details className="group rounded-2xl bg-slate-50/70 p-4 lg:col-span-2">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
-            <span>Чек-лист</span>
-            <span className="text-base text-slate-400 transition group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-3 text-sm">
-            {checklistItems.length === 0 ? (
-              <p className="font-medium text-slate-900">—</p>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {checklistItems.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm"
-                  >
-                    <span
-                      className={
-                        item.done
-                          ? "h-2.5 w-2.5 rounded-full bg-emerald-500"
-                          : "h-2.5 w-2.5 rounded-full bg-slate-300"
-                      }
-                    />
-                    <span className="text-slate-800">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </details>
-      </div>
-
-      <details className="group rounded-2xl bg-slate-50/70 p-4">
-        <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
-          <span>Референсы</span>
-          <span className="text-base text-slate-400 transition group-open:rotate-180">▾</span>
-        </summary>
-        <div className="mt-3">
-          {references.length === 0 ? (
-            <p className="text-sm font-medium text-slate-900">—</p>
-          ) : (
-            <div className="grid gap-3 text-sm sm:grid-cols-3">
-              {references.map((ref) => {
-                const isImage =
-                  ref.urlOrData.startsWith("data:image") || imageRegex.test(ref.urlOrData);
-                return (
-                  <div key={ref.id} className="rounded-xl bg-white p-3 shadow-sm">
-                    {isImage ? (
-                      <img
-                        src={ref.urlOrData}
-                        alt={ref.name}
-                        className="h-20 w-full rounded-lg object-cover"
+          {hasChecklist && (
+            <details className="group rounded-2xl border border-slate-200/60 p-3 lg:col-span-2">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span>Чек-лист</span>
+                <span className="text-base text-slate-400 transition group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <div className="mt-2 text-sm">
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {checklistItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200/60 px-3 py-2 text-sm"
+                    >
+                      <span
+                        className={
+                          item.done
+                            ? "h-2.5 w-2.5 rounded-full bg-emerald-500"
+                            : "h-2.5 w-2.5 rounded-full bg-slate-300"
+                        }
                       />
-                    ) : (
-                      <a
-                        href={ref.urlOrData}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm font-semibold text-sky-600 hover:underline"
-                      >
-                        {ref.urlOrData}
-                      </a>
-                    )}
-                    <p className="mt-2 truncate text-xs text-slate-500">
-                      {valueOrDash(ref.name)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+                      <span className="text-slate-800">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
+
+          {hasReferences && (
+            <details className="group rounded-2xl border border-slate-200/60 p-3 lg:col-span-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span>Референсы</span>
+                <span className="text-base text-slate-400 transition group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <div className="mt-2">
+                <div className="grid gap-3 text-sm sm:grid-cols-3">
+                  {references.map((ref) => {
+                    const isImage =
+                      ref.urlOrData.startsWith("data:image") || imageRegex.test(ref.urlOrData);
+                    return (
+                      <div key={ref.id} className="rounded-xl border border-slate-200/60 p-3">
+                        {isImage ? (
+                          <img
+                            src={ref.urlOrData}
+                            alt={ref.name}
+                            className="h-20 w-full rounded-lg object-cover"
+                          />
+                        ) : (
+                          <a
+                            href={ref.urlOrData}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-semibold text-sky-600 hover:underline"
+                          >
+                            {ref.urlOrData}
+                          </a>
+                        )}
+                        <p className="mt-2 truncate text-xs text-slate-500">
+                          {valueOrDash(ref.name)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </details>
           )}
         </div>
-      </details>
+      )}
     </CenterModal>
   );
 }
