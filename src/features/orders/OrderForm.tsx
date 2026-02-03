@@ -13,18 +13,30 @@ import { formatCurrency } from "../../utils/currency";
 import { DrawerSheet } from "../../components/common/DrawerSheet";
 import { CustomerForm } from "../customers/CustomerForm";
 
-const schema = z.object({
-  customerName: z.string().min(2, t.orders.form.customerNameRequired),
-  customerId: z.string().optional(),
-  dueAt: z.string().min(1, t.orders.form.dueDateRequired),
-  status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
-  pickupOrDelivery: z.enum(["pickup", "delivery"]),
-  address: z.string().optional(),
-  designNotes: z.string().optional(),
-  priceTotal: z.coerce.number().min(0),
-  deposit: z.coerce.number().min(0),
-  checklist: z.string().optional(),
-});
+const schema = z
+  .object({
+    customerName: z.string().min(2, t.orders.form.customerNameRequired),
+    customerId: z.string().optional(),
+    dueAt: z.string().min(1, t.orders.form.dueDateRequired),
+    status: z.enum(["draft", "confirmed", "in-progress", "ready", "completed"]),
+    pickupOrDelivery: z.enum(["pickup", "delivery"]),
+    address: z.string().optional(),
+    designNotes: z.string().optional(),
+    priceTotal: z.coerce.number().min(0),
+    deposit: z.coerce.number().min(0),
+    checklist: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    const total = Number(values.priceTotal) || 0;
+    const deposit = Number(values.deposit) || 0;
+    if (deposit > total) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["deposit"],
+        message: "Аванс не может быть больше итоговой цены.",
+      });
+    }
+  });
 
 export type OrderFormValues = z.infer<typeof schema>;
 type FormStatus = "draft" | "confirmed" | "in-progress" | "ready" | "completed";
@@ -92,6 +104,7 @@ export function OrderFormContent({
   } = useForm<OrderFormValues>({
     resolver: zodResolver(schema),
     defaultValues,
+    mode: "onChange",
   });
 
   useEffect(() => {
@@ -104,11 +117,12 @@ export function OrderFormContent({
     register("customerId");
   }, [register]);
 
-  const depositRemaining = useMemo(() => {
-    const priceTotal = Number(watch("priceTotal") ?? 0);
-    const deposit = Number(watch("deposit") ?? 0);
-    return Math.max(priceTotal - deposit, 0);
-  }, [watch]);
+  const priceTotal = watch("priceTotal");
+  const deposit = watch("deposit");
+  const total = Number(priceTotal) || 0;
+  const paid = Number(deposit) || 0;
+  const remaining = total - paid;
+  const isDepositOver = paid > total;
 
   const normalizePhone = (value: string) => value.replace(/[\s()+-]/g, "");
   const customerQuery = watch("customerName") ?? "";
@@ -401,10 +415,20 @@ export function OrderFormContent({
               <Input type="number" step="0.01" {...register("priceTotal")} />
               <label className="text-sm font-medium">{t.orders.form.depositLabel}</label>
               <Input type="number" step="0.01" {...register("deposit")} />
-              <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                {t.orders.form.remainingBalanceLabel}{" "}
+              {errors.deposit ? (
+                <p className="text-xs text-rose-500">{errors.deposit.message}</p>
+              ) : null}
+              <div
+                className={cn(
+                  "rounded-2xl px-4 py-3 text-sm",
+                  isDepositOver
+                    ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                )}
+              >
+                {isDepositOver ? "Переплата:" : t.orders.form.remainingBalanceLabel}{" "}
                 <span className="font-semibold">
-                  {formatCurrency(depositRemaining, settings?.currency)}
+                  {formatCurrency(Math.abs(remaining), settings?.currency)}
                 </span>
               </div>
             </div>
@@ -475,10 +499,14 @@ export function OrderFormContent({
           {isFirstStep && canCloseOnFirstStep ? t.orders.actions.close : t.orders.form.back}
         </Button>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="subtle" onClick={handleSaveDraft}>
+          <Button type="button" variant="subtle" onClick={handleSaveDraft} disabled={isDepositOver}>
             {t.orders.form.saveDraft}
           </Button>
-          <Button type="submit" variant={isLastStep ? "default" : "subtle"}>
+          <Button
+            type="submit"
+            variant={isLastStep ? "default" : "subtle"}
+            disabled={isDepositOver}
+          >
             {t.orders.form.saveOrder}
           </Button>
           {!isLastStep ? (
