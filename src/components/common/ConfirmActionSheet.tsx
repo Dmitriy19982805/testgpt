@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface ConfirmActionSheetProps {
@@ -108,12 +109,16 @@ export function ConfirmActionSheet({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center">
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-hidden flex items-end justify-center">
       <button
         type="button"
         className={
-          "fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-[240ms] ease-out " +
+          "fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity duration-[240ms] ease-out " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
@@ -165,6 +170,7 @@ export function ConfirmActionSheet({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

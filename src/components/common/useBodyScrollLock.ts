@@ -1,32 +1,23 @@
 import { useEffect } from "react";
 
 let lockCount = 0;
-let previousBodyOverflow = "";
-let previousBodyPaddingRight = "";
+let previousHtmlOverflow = "";
 
-function lockBodyScroll() {
+function lockPageScroll() {
   if (typeof document === "undefined" || typeof window === "undefined") {
     return;
   }
 
-  const body = document.body;
+  const html = document.documentElement;
   if (lockCount === 0) {
-    previousBodyOverflow = body.style.overflow;
-    previousBodyPaddingRight = body.style.paddingRight;
-
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-    body.style.overflow = "hidden";
-    if (scrollBarWidth > 0) {
-      body.style.paddingRight = previousBodyPaddingRight
-        ? `calc(${previousBodyPaddingRight} + ${scrollBarWidth}px)`
-        : `${scrollBarWidth}px`;
-    }
+    previousHtmlOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
   }
 
   lockCount += 1;
 }
 
-function unlockBodyScroll() {
+function unlockPageScroll() {
   if (typeof document === "undefined" || lockCount === 0) {
     return;
   }
@@ -36,9 +27,8 @@ function unlockBodyScroll() {
     return;
   }
 
-  const body = document.body;
-  body.style.overflow = previousBodyOverflow;
-  body.style.paddingRight = previousBodyPaddingRight;
+  const html = document.documentElement;
+  html.style.overflow = previousHtmlOverflow;
 }
 
 export function useBodyScrollLock(locked: boolean) {
@@ -47,9 +37,9 @@ export function useBodyScrollLock(locked: boolean) {
       return;
     }
 
-    lockBodyScroll();
+    lockPageScroll();
     return () => {
-      unlockBodyScroll();
+      unlockPageScroll();
     };
   }, [locked]);
 }

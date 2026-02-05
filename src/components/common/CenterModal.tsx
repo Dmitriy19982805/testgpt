@@ -134,13 +134,13 @@ export function CenterModal({
   };
 
   const baseModalClassName =
-    "relative z-[60] w-full transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center ";
+    "relative z-[10000] w-full transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center ";
   const defaultShellClassName =
     "glass-card max-w-[520px] rounded-2xl border border-white/40 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] dark:border-slate-800/70";
   const shellClassName = className ?? defaultShellClassName;
   const headerClasses = headerClassName ?? "space-y-1";
   const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
-  const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-hidden overflow-y-auto";
+  const containerClasses = containerClassName ?? "fixed inset-0 z-[9999] overflow-hidden overflow-y-auto";
   const footerClasses = footerClassName ?? "mt-6 flex w-full gap-3";
 
   return createPortal(
@@ -148,7 +148,7 @@ export function CenterModal({
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"

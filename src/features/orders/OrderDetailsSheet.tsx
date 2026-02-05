@@ -72,7 +72,7 @@ export function OrderDetailsSheet({ open, order, onOpenChange }: OrderDetailsShe
       onOpenChange={onOpenChange}
       title="Детали заказа"
       className="w-[92vw] max-w-[960px] rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
-      containerClassName="fixed inset-0 z-50 h-screen w-screen overflow-hidden"
+      containerClassName="fixed inset-0 z-[9999] overflow-hidden"
       bodyClassName="mt-3 grid gap-3"
       showCloseButton
     >

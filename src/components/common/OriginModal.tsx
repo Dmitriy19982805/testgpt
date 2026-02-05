@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { useBodyScrollLock } from "./useBodyScrollLock";
 
@@ -158,6 +159,10 @@ export function OriginModal({
     return null;
   }
 
+  if (typeof document === "undefined") {
+    return null;
+  }
+
   const handleClose = () => {
     onOpenChange(false);
   };
@@ -168,11 +173,11 @@ export function OriginModal({
     : `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
   const activeTransform = "translate(0px, 0px) scale(1)";
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden" onClick={handleClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-hidden" onClick={handleClose}>
       <div
         className={
-          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +
           (isActive ? "opacity-100" : "opacity-0")
         }
         aria-hidden="true"
@@ -185,7 +190,7 @@ export function OriginModal({
           aria-labelledby={titleId}
           aria-describedby={description ? descriptionId : undefined}
           className={
-            "relative z-[60] flex flex-col rounded-2xl border bg-white/95 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:bg-slate-900/80 " +
+            "relative z-[10000] flex flex-col rounded-2xl border bg-white/95 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:bg-slate-900/80 " +
             (variant === "danger" ? "border-rose-200/70 dark:border-rose-500/40" : "border-white/40 dark:border-slate-800/70") +
             " origin-center overflow-hidden" +
             (className ? ` ${className}` : "")
@@ -218,6 +223,7 @@ export function OriginModal({
           {footer ? <div className="mt-6 flex w-full shrink-0 gap-3">{footer}</div> : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
