@@ -8,6 +8,7 @@
 }
 
 html {
+  margin: 0;
   scrollbar-gutter: stable;
 }
 
@@ -16,7 +17,9 @@ html {
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   overflow-y: scroll;
   background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%);
 }

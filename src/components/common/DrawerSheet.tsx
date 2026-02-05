@@ -158,7 +158,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
   }
 
   return (
-    <div className="fixed inset-0 z-50 h-screen w-screen flex items-end justify-center md:items-stretch md:justify-end">
+    <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center md:items-stretch md:justify-end">
       <button
         type="button"
         className={
