@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/button";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface DrawerSheetProps {
   open: boolean;
@@ -77,16 +78,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
     return finalize;
   }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isVisible]);
+  useBodyScrollLock(isVisible);
 
   useEffect(() => {
     if (!open) {
@@ -166,7 +158,7 @@ export function DrawerSheet({ open, title, onOpenChange, children }: DrawerSheet
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-stretch md:justify-end">
+    <div className="fixed inset-0 z-50 h-screen w-screen flex items-end justify-center md:items-stretch md:justify-end">
       <button
         type="button"
         className={

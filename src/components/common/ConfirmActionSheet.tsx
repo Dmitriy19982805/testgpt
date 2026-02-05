@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface ConfirmActionSheetProps {
   open: boolean;
@@ -53,16 +54,7 @@ export function ConfirmActionSheet({
     }
   }, [open, isVisible]);
 
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isVisible]);
+  useBodyScrollLock(isVisible);
 
   useEffect(() => {
     if (!open) {
@@ -117,7 +109,7 @@ export function ConfirmActionSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 h-screen w-screen flex items-end justify-center">
       <button
         type="button"
         className={

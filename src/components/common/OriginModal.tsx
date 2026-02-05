@@ -169,7 +169,7 @@ export function OriginModal({
   const activeTransform = "translate(0px, 0px) scale(1)";
 
   return (
-    <div className="fixed inset-0 z-50" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 h-screen w-screen" onClick={handleClose}>
       <div
         className={
           "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 " +

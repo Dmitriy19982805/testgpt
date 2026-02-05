@@ -5,7 +5,7 @@ let previousBodyOverflow = "";
 let previousBodyPaddingRight = "";
 
 function lockBodyScroll() {
-  if (typeof document === "undefined") {
+  if (typeof document === "undefined" || typeof window === "undefined") {
     return;
   }
 
@@ -17,7 +17,9 @@ function lockBodyScroll() {
     const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
     body.style.overflow = "hidden";
     if (scrollBarWidth > 0) {
-      body.style.paddingRight = `${scrollBarWidth}px`;
+      body.style.paddingRight = previousBodyPaddingRight
+        ? `calc(${previousBodyPaddingRight} + ${scrollBarWidth}px)`
+        : `${scrollBarWidth}px`;
     }
   }
 
