@@ -325,11 +325,13 @@ export function CustomersPage() {
         onOpenChange={setBlockedDeleteOpen}
         title="Удаление недоступно"
         description="Нельзя удалить клиента: есть связанные заказы."
+        className="w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8"
+        containerClassName="fixed inset-0 z-50 h-full w-full"
+        footerClassName="mt-6 flex w-full"
         footer={
           <Button
             type="button"
-            variant="outline"
-            className="flex-1 rounded-2xl"
+            className="w-full rounded-2xl"
             onClick={() => setBlockedDeleteOpen(false)}
           >
             Понятно
