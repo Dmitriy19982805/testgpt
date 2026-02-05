@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { Check, MoreVertical, Plus } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -79,6 +79,8 @@ export function IngredientsPage() {
   const [confirmDelete, setConfirmDelete] = useState<Ingredient | null>(null);
   const [blockedDeleteIngredient, setBlockedDeleteIngredient] = useState<Ingredient | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [showSavedHint, setShowSavedHint] = useState(false);
 
   const validation = useMemo(() => validateIngredientForm(formState), [formState]);
   const computedUnitPrice = useMemo(() => {
@@ -138,6 +140,11 @@ export function IngredientsPage() {
 
     await addIngredient(validation.parsed);
     resetForm();
+    setCreateFormOpen(false);
+    setShowSavedHint(true);
+    window.setTimeout(() => {
+      setShowSavedHint(false);
+    }, 2200);
   };
 
   const openEdit = (ingredient: Ingredient) => {
@@ -239,13 +246,55 @@ export function IngredientsPage() {
     <div className="space-y-6">
       <PageHeader title="Ингредиенты" description="Справочник сырья с точной ценой за единицу." />
 
-      <GlassCard className="space-y-5 p-6">
-        <h3 className="text-lg font-semibold">Новый ингредиент</h3>
-        {renderIngredientFields()}
-        <div className="flex justify-end pt-1">
-          <Button onClick={() => void saveIngredient()} className="min-w-44">Сохранить ингредиент</Button>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={() => {
+              setCreateFormOpen((prev) => !prev);
+              setFormSubmitted(false);
+            }}
+            className="min-w-52"
+          >
+            <Plus className="mr-2" size={16} />
+            Добавить ингредиент
+          </Button>
+          <div
+            className={`inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-medium text-emerald-700 transition-all dark:bg-emerald-500/20 dark:text-emerald-200 ${
+              showSavedHint ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <Check size={14} />
+            Ингредиент сохранён
+          </div>
         </div>
-      </GlassCard>
+
+        <div
+          className={`origin-top overflow-hidden transition-all duration-300 ease-out ${
+            createFormOpen ? "max-h-[900px] scale-100 opacity-100" : "max-h-0 scale-[0.98] opacity-0"
+          }`}
+          aria-hidden={!createFormOpen}
+        >
+          <GlassCard className="mt-1 space-y-5 p-6">
+            <h3 className="text-lg font-semibold">Новый ингредиент</h3>
+            {renderIngredientFields()}
+            <div className="flex flex-col-reverse justify-end gap-2 pt-1 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCreateFormOpen(false);
+                  resetForm();
+                }}
+                className="min-w-32"
+              >
+                Отмена
+              </Button>
+              <Button onClick={() => void saveIngredient()} className="min-w-44">Сохранить ингредиент</Button>
+            </div>
+          </GlassCard>
+        </div>
+      </div>
 
       {ingredients.length === 0 ? (
         <EmptyState title="Ингредиентов пока нет" description="Добавьте первый ингредиент для расчётов себестоимости." />
