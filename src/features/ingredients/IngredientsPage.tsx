@@ -398,7 +398,10 @@ export function IngredientsPage() {
         }}
         title="Удаление недоступно"
         description={blockedDeleteIngredient ? `Ингредиент «${blockedDeleteIngredient.name}» используется в рецептах.` : ""}
-        footer={<Button variant="outline" className="flex-1" onClick={() => setBlockedDeleteIngredient(null)}>Понятно</Button>}
+        className="w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8"
+        containerClassName="fixed inset-0 z-50 h-full w-full"
+        footerClassName="mt-6 flex w-full"
+        footer={<Button className="w-full rounded-2xl" onClick={() => setBlockedDeleteIngredient(null)}>Понятно</Button>}
       />
 
       <ConfirmModal
