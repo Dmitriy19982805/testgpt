@@ -159,7 +159,7 @@ export function IngredientsPage() {
     recipes.some((recipe) => recipe.items.some((item) => item.ingredientId === ingredientId));
 
   const renderIngredientFields = () => (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Название ингредиента</label>
         <Input
@@ -363,17 +363,17 @@ export function IngredientsPage() {
         }}
         title="Редактирование ингредиента"
         description="Обновите параметры упаковки и цены"
-        className="w-[min(920px,92vw)] max-h-[88vh] overflow-hidden rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
-        containerClassName="fixed inset-0 z-50 h-screen w-screen overflow-hidden"
-        headerClassName="shrink-0 space-y-1"
-        bodyClassName="mt-4 max-h-[calc(88vh-190px)] overflow-y-auto pr-1"
-        footerClassName="sticky bottom-0 mt-4 flex w-full gap-3 border-t border-slate-200/70 bg-white pt-4"
+        className="w-full max-w-[720px] max-h-[85vh] overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl"
+        containerClassName="fixed inset-0 z-50 h-full w-full"
+        headerClassName="shrink-0 space-y-1 px-8 pt-8"
+        bodyClassName="mt-4 max-h-[calc(85vh-210px)] overflow-y-auto p-8 pt-0"
+        footerClassName="mt-4 flex w-full justify-end gap-3 border-t border-slate-200/70 px-8 pb-8 pt-5"
         showCloseButton
         footer={
           <>
             <Button
               variant="outline"
-              className="flex-1 rounded-2xl"
+              className="min-w-32 rounded-2xl"
               onClick={() => {
                 setEditModalOpen(false);
                 resetForm();
@@ -381,7 +381,7 @@ export function IngredientsPage() {
             >
               Отмена
             </Button>
-            <Button className="flex-1 rounded-2xl" onClick={() => void saveIngredient()}>Сохранить</Button>
+            <Button className="min-w-32 rounded-2xl" onClick={() => void saveIngredient()}>Сохранить</Button>
           </>
         }
       >
