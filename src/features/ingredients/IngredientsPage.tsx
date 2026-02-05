@@ -364,7 +364,7 @@ export function IngredientsPage() {
         title="Редактирование ингредиента"
         description="Обновите параметры упаковки и цены"
         className="w-full max-w-[720px] max-h-[85vh] overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl"
-        containerClassName="fixed inset-0 z-50 h-full w-full"
+        containerClassName="fixed inset-0 z-[9999] h-full w-full"
         headerClassName="shrink-0 space-y-1 px-8 pt-8"
         bodyClassName="mt-4 max-h-[calc(85vh-210px)] overflow-y-auto p-8 pt-0"
         footerClassName="mt-4 flex w-full justify-end gap-3 border-t border-slate-200/70 px-8 pb-8 pt-5"
@@ -399,7 +399,7 @@ export function IngredientsPage() {
         title="Удаление недоступно"
         description={blockedDeleteIngredient ? `Ингредиент «${blockedDeleteIngredient.name}» используется в рецептах.` : ""}
         className="w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8"
-        containerClassName="fixed inset-0 z-50 h-full w-full"
+        containerClassName="fixed inset-0 z-[9999] h-full w-full"
         footerClassName="mt-6 flex w-full"
         footer={<Button className="w-full rounded-2xl" onClick={() => setBlockedDeleteIngredient(null)}>Понятно</Button>}
       />

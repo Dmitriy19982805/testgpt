@@ -326,7 +326,7 @@ export function CustomersPage() {
         title="Удаление недоступно"
         description="Нельзя удалить клиента: есть связанные заказы."
         className="w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8"
-        containerClassName="fixed inset-0 z-50 h-full w-full"
+        containerClassName="fixed inset-0 z-[9999] h-full w-full"
         footerClassName="mt-6 flex w-full"
         footer={
           <Button

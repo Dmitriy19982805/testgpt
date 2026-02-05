@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { useBodyScrollLock } from "./useBodyScrollLock";
@@ -164,18 +165,22 @@ export function ConfirmModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-hidden overflow-y-auto" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className={
-          "absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[180ms] ease-out motion-reduce:transition-none motion-reduce:duration-0 " +
+          "fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity duration-[180ms] ease-out motion-reduce:transition-none motion-reduce:duration-0 " +
           (isShown ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
         onClick={handleClose}
       />
-      <div className="relative flex min-h-full w-full items-center justify-center p-4">
+      <div className="relative z-[10000] flex min-h-full w-full items-center justify-center p-4">
         <div
           ref={modalRef}
           role="dialog"
@@ -183,7 +188,7 @@ export function ConfirmModal({
           aria-labelledby={titleId}
           aria-describedby={description ? descriptionId : undefined}
           className={
-            "relative z-[60] w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-xl transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center will-change-[transform,opacity] sm:p-8 " +
+            "relative w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-xl transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center will-change-[transform,opacity] sm:p-8 " +
             (isShown
               ? "opacity-100 scale-100 translate-y-0"
               : "opacity-0 scale-[0.96] translate-y-2")
@@ -226,6 +231,7 @@ export function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
