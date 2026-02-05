@@ -1,4 +1,5 @@
 export type PickupOrDelivery = "pickup" | "delivery";
+export type BaseUnit = "g" | "ml" | "pcs";
 
 export interface Customer {
   id: string;
@@ -98,21 +99,31 @@ export interface Order {
 export interface Ingredient {
   id: string;
   name: string;
-  unit: string;
-  pricePerUnit: number;
+  category?: string;
+  baseUnit: BaseUnit;
+  packSize: number;
+  packPrice: number;
+  lossPct?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface RecipeIngredient {
+export interface RecipeItem {
   ingredientId: string;
-  qty: number;
+  amount: number;
+  unit: BaseUnit;
 }
 
 export interface Recipe {
   id: string;
   name: string;
-  yieldKg: number;
-  ingredients: RecipeIngredient[];
-  notes: string;
+  category?: string;
+  yieldAmount: number;
+  yieldUnit: BaseUnit;
+  items: RecipeItem[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Settings {
