@@ -7,7 +7,7 @@ import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
 import type { BaseUnit, Ingredient } from "../../db/types";
-import { formatCurrency } from "../../utils/currency";
+import { formatCurrency, formatUnitCurrency } from "../../utils/currency";
 import { CenterModal } from "../../components/common/CenterModal";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
 import { ActionMenu } from "../../components/common/ActionMenu";
@@ -82,10 +82,17 @@ export function IngredientsPage() {
   const computedUnitPrice = useMemo(() => {
     const packSize = Number(formState.packSize);
     const packPrice = Number(formState.packPrice);
+
     if (!Number.isFinite(packSize) || !Number.isFinite(packPrice) || packSize <= 0 || packPrice <= 0) {
       return "—";
     }
-    return formatCurrency(packPrice / packSize, settings?.currency ?? "RUB");
+
+    const unitPrice = packPrice / packSize;
+    if (!Number.isFinite(unitPrice)) {
+      return "—";
+    }
+
+    return formatUnitCurrency(unitPrice, settings?.currency ?? "RUB");
   }, [formState.packPrice, formState.packSize, settings?.currency]);
 
   const setField = <K extends keyof IngredientFormState>(field: K, value: IngredientFormState[K]) => {
@@ -253,7 +260,7 @@ export function IngredientsPage() {
                 </div>
                 <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
                   <p>
-                    Цена за единицу: {formatCurrency(unitPrice, settings?.currency ?? "RUB")} / {getUnitLabel(ingredient.baseUnit)}
+                    Цена за единицу: {formatUnitCurrency(unitPrice, settings?.currency ?? "RUB")} / {getUnitLabel(ingredient.baseUnit)}
                   </p>
                   <p>
                     Упаковка: {formatCurrency(ingredient.packPrice, settings?.currency ?? "RUB")} за {ingredient.packSize} {getUnitLabel(ingredient.baseUnit)}
