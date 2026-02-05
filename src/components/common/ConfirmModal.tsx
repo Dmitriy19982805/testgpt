@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface ConfirmModalProps {
   open: boolean;
@@ -103,23 +104,7 @@ export function ConfirmModal({
     return finalize;
   }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const root = document.documentElement;
-    const previousOverflow = root.style.overflow;
-    const previousPaddingRight = root.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - root.clientWidth;
-    root.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      root.style.paddingRight = `${scrollbarWidth}px`;
-    }
-    return () => {
-      root.style.overflow = previousOverflow;
-      root.style.paddingRight = previousPaddingRight;
-    };
-  }, [isVisible]);
+  useBodyScrollLock(isVisible);
 
   useEffect(() => {
     if (!open) {
@@ -180,62 +165,65 @@ export function ConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className={
-          "fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[180ms] ease-out motion-reduce:transition-none motion-reduce:duration-0 " +
+          "absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-[180ms] ease-out motion-reduce:transition-none motion-reduce:duration-0 " +
           (isShown ? "opacity-100" : "opacity-0")
         }
         aria-label="Закрыть"
         onClick={handleClose}
       />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={description ? descriptionId : undefined}
-        className={
-          "glass-card relative z-[60] min-h-[160px] w-[min(520px,92vw)] rounded-2xl border border-white/40 px-6 py-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.25)] transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 dark:border-slate-800/70 origin-center will-change-[transform,opacity] " +
-          (isShown
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-[0.96] translate-y-2")
-        }
-      >
-        <h2
-          id={titleId}
-          className="text-lg font-semibold text-slate-900 dark:text-slate-50"
+      <div className="relative flex min-h-full w-full items-center justify-center p-4">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description ? descriptionId : undefined}
+          className={
+            "relative z-[60] w-full max-w-[520px] rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-xl transition-[transform,opacity] duration-[200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-center will-change-[transform,opacity] sm:p-8 " +
+            (isShown
+              ? "opacity-100 scale-100 translate-y-0"
+              : "opacity-0 scale-[0.96] translate-y-2")
+          }
+          onClick={(event) => event.stopPropagation()}
         >
-          {title}
-        </h2>
-        {description ? (
-          <p
-            id={descriptionId}
-            className="mt-2 text-sm text-slate-500 dark:text-slate-400"
+          <h2
+            id={titleId}
+            className="text-lg font-semibold text-slate-900"
           >
-            {description}
-          </p>
-        ) : null}
-        <div className="mt-6 flex w-full gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1 rounded-2xl bg-white/70 text-slate-700 hover:bg-white/90 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-slate-800/80"
-            onClick={handleClose}
-            disabled={isLoading}
-            ref={cancelButtonRef}
-          >
-            {cancelText}
-          </Button>
-          <Button
-            type="button"
-            className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-500 dark:text-white dark:hover:bg-rose-400"
-            onClick={handleConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? loadingText : confirmText}
-          </Button>
+            {title}
+          </h2>
+          {description ? (
+            <p
+              id={descriptionId}
+              className="mt-2 text-sm text-slate-500"
+            >
+              {description}
+            </p>
+          ) : null}
+          <div className="mt-6 flex w-full gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={handleClose}
+              disabled={isLoading}
+              ref={cancelButtonRef}
+            >
+              {cancelText}
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-2xl bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-500 dark:text-white dark:hover:bg-rose-400"
+              onClick={handleConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? loadingText : confirmText}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

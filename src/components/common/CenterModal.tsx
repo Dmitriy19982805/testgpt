@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface CenterModalProps {
   open: boolean;
@@ -96,16 +97,7 @@ export function CenterModal({
     return finalize;
   }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isVisible]);
+  useBodyScrollLock(isVisible);
 
   useEffect(() => {
     if (!open) {
