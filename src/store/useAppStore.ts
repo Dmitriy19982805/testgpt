@@ -24,8 +24,12 @@ interface AppState {
   updateOrder: (order: Order) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
-  deleteRecipe: (id: string) => Promise<void>;
+  addIngredient: (ingredient: Omit<Ingredient, "id" | "createdAt" | "updatedAt">) => Promise<Ingredient>;
+  updateIngredient: (ingredient: Ingredient) => Promise<Ingredient>;
   deleteIngredient: (id: string) => Promise<void>;
+  addRecipe: (recipe: Omit<Recipe, "id" | "createdAt" | "updatedAt">) => Promise<Recipe>;
+  updateRecipe: (recipe: Recipe) => Promise<Recipe>;
+  deleteRecipe: (id: string) => Promise<void>;
 }
 
 const defaultSettings: Settings = {
@@ -46,32 +50,29 @@ export const useAppStore = create<AppState>((set, get) => ({
   settings: null,
   isLoaded: false,
   loadAll: async () => {
-    const [customers, orders, ingredients, recipes, settings] =
-      await Promise.all([
-        db.customers.toArray(),
-        db.orders.toArray(),
-        db.ingredients.toArray(),
-        db.recipes.toArray(),
-        db.settings.get("settings"),
-      ]);
+    const [customers, orders, ingredients, recipes, settings] = await Promise.all([
+      db.customers.toArray(),
+      db.orders.toArray(),
+      db.ingredients.toArray(),
+      db.recipes.toArray(),
+      db.settings.get("settings"),
+    ]);
     const migratedCustomers = customers.map((customer) => {
       if (!customer.secondaryContact && customer.email) {
         return { ...customer, secondaryContact: customer.email };
       }
       return customer;
     });
-    const customersToUpdate = migratedCustomers.filter(
-      (customer, index) => customer !== customers[index]
-    );
+    const customersToUpdate = migratedCustomers.filter((customer, index) => customer !== customers[index]);
     if (customersToUpdate.length > 0) {
       await db.customers.bulkPut(customersToUpdate);
     }
+
     let resolvedSettings = settings ?? defaultSettings;
     if (!settings) {
       await db.settings.put(defaultSettings);
     } else {
-      const needsCurrencyMigration =
-        !settings.currencyMigrated && (!settings.currency || settings.currency === "USD");
+      const needsCurrencyMigration = !settings.currencyMigrated && (!settings.currency || settings.currency === "USD");
       if (needsCurrencyMigration) {
         resolvedSettings = {
           ...settings,
@@ -84,6 +85,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         await db.settings.put(resolvedSettings);
       }
     }
+
     set({
       customers: migratedCustomers,
       orders,
@@ -99,6 +101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   seedDemo: async () => {
     const now = new Date();
+    const nowIso = now.toISOString();
     const customerId = createId("cust");
     const demo = t.demo;
     const customer: Customer = {
@@ -108,24 +111,55 @@ export const useAppStore = create<AppState>((set, get) => ({
       secondaryContact: "@ekaterina",
       notes: demo.customerNotes,
       tags: demo.customerTags,
-      createdAt: now.toISOString(),
+      createdAt: nowIso,
     };
     const customers: Customer[] = [customer];
     const ingredients: Ingredient[] = [
-      { id: createId("ing"), name: demo.ingredients.vanilla, unit: "кг", pricePerUnit: 3.5 },
-      { id: createId("ing"), name: demo.ingredients.butter, unit: "кг", pricePerUnit: 4.2 },
-      { id: createId("ing"), name: demo.ingredients.flour, unit: "кг", pricePerUnit: 1.1 },
+      {
+        id: createId("ing"),
+        name: demo.ingredients.vanilla,
+        category: "База",
+        baseUnit: "g",
+        packSize: 1000,
+        packPrice: 350,
+        lossPct: 0,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      },
+      {
+        id: createId("ing"),
+        name: demo.ingredients.butter,
+        category: "Молочные",
+        baseUnit: "g",
+        packSize: 1000,
+        packPrice: 420,
+        lossPct: 3,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      },
+      {
+        id: createId("ing"),
+        name: demo.ingredients.flour,
+        category: "Сухие",
+        baseUnit: "g",
+        packSize: 1000,
+        packPrice: 110,
+        lossPct: 0,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      },
     ];
     const recipes: Recipe[] = [
       {
         id: createId("rec"),
         name: demo.recipeName,
-        yieldKg: 4,
-        ingredients: ingredients.map((item) => ({
-          ingredientId: item.id,
-          qty: 0.4,
-        })),
+        category: "Бисквит",
+        yieldAmount: 1500,
+        yieldUnit: "g",
+        items: ingredients.map((item) => ({ ingredientId: item.id, amount: 400, unit: "g" })),
         notes: demo.recipeNotes,
+        createdAt: nowIso,
+        updatedAt: nowIso,
       },
     ];
     const orders: Order[] = [
@@ -133,11 +167,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         id: createId("ord"),
         orderNo: createOrderNumber(0),
         status: "confirmed",
-        createdAt: now.toISOString(),
-        dueAt: toDueAtIso(
-          new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(),
-          DEFAULT_DUE_TIME
-        ),
+        createdAt: nowIso,
+        dueAt: toDueAtIso(new Date(now.getTime() + 1000 * 60 * 60 * 24 * 2).toISOString(), DEFAULT_DUE_TIME),
         dueTime: DEFAULT_DUE_TIME,
         customerId,
         customerName: customer.name,
@@ -168,28 +199,18 @@ export const useAppStore = create<AppState>((set, get) => ({
             id: createId("pay"),
             type: "deposit",
             amount: 150,
-            at: now.toISOString(),
+            at: nowIso,
             method: "card",
             note: demo.paymentNote,
           },
         ],
-        cost: {
-          ingredientsCost: 60,
-          packagingCost: 18,
-          laborCost: 120,
-          totalCost: 198,
-        },
-        profit: {
-          grossProfit: 237,
-          marginPct: 54.5,
-        },
+        cost: { ingredientsCost: 60, packagingCost: 18, laborCost: 120, totalCost: 198 },
+        profit: { grossProfit: 237, marginPct: 54.5 },
         checklist: [
           { id: createId("check"), text: demo.checklist[0], done: true },
           { id: createId("check"), text: demo.checklist[1], done: false },
         ],
-        timeline: [
-          { id: createId("time"), at: now.toISOString(), text: demo.timelineConfirmed },
-        ],
+        timeline: [{ id: createId("time"), at: nowIso, text: demo.timelineConfirmed }],
       },
     ];
 
@@ -232,9 +253,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   updateCustomer: async (customer) => {
     await db.customers.put(customer);
-    set({
-      customers: get().customers.map((item) => (item.id === customer.id ? customer : item)),
-    });
+    set({ customers: get().customers.map((item) => (item.id === customer.id ? customer : item)) });
     return customer;
   },
   addOrder: async (order) => {
@@ -253,12 +272,66 @@ export const useAppStore = create<AppState>((set, get) => ({
     await db.customers.delete(id);
     await get().loadAll();
   },
-  deleteRecipe: async (id) => {
-    await db.recipes.delete(id);
-    await get().loadAll();
+  addIngredient: async (ingredientInput) => {
+    const now = new Date().toISOString();
+    const ingredient: Ingredient = {
+      id: createId("ing"),
+      ...ingredientInput,
+      name: ingredientInput.name.trim(),
+      category: ingredientInput.category?.trim() ?? "",
+      lossPct: ingredientInput.lossPct ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.ingredients.put(ingredient);
+    set({ ingredients: [...get().ingredients, ingredient] });
+    return ingredient;
+  },
+  updateIngredient: async (ingredient) => {
+    const nextIngredient: Ingredient = {
+      ...ingredient,
+      name: ingredient.name.trim(),
+      category: ingredient.category?.trim() ?? "",
+      lossPct: ingredient.lossPct ?? 0,
+      updatedAt: new Date().toISOString(),
+    };
+    await db.ingredients.put(nextIngredient);
+    set({ ingredients: get().ingredients.map((item) => (item.id === nextIngredient.id ? nextIngredient : item)) });
+    return nextIngredient;
   },
   deleteIngredient: async (id) => {
     await db.ingredients.delete(id);
+    await get().loadAll();
+  },
+  addRecipe: async (recipeInput) => {
+    const now = new Date().toISOString();
+    const recipe: Recipe = {
+      id: createId("rec"),
+      ...recipeInput,
+      name: recipeInput.name.trim(),
+      category: recipeInput.category?.trim() ?? "",
+      notes: recipeInput.notes?.trim() ?? "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.recipes.put(recipe);
+    set({ recipes: [...get().recipes, recipe] });
+    return recipe;
+  },
+  updateRecipe: async (recipe) => {
+    const nextRecipe: Recipe = {
+      ...recipe,
+      name: recipe.name.trim(),
+      category: recipe.category?.trim() ?? "",
+      notes: recipe.notes?.trim() ?? "",
+      updatedAt: new Date().toISOString(),
+    };
+    await db.recipes.put(nextRecipe);
+    set({ recipes: get().recipes.map((item) => (item.id === nextRecipe.id ? nextRecipe : item)) });
+    return nextRecipe;
+  },
+  deleteRecipe: async (id) => {
+    await db.recipes.delete(id);
     await get().loadAll();
   },
 }));
