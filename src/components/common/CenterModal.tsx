@@ -140,7 +140,7 @@ export function CenterModal({
   const shellClassName = className ?? defaultShellClassName;
   const headerClasses = headerClassName ?? "space-y-1";
   const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
-  const containerClasses = containerClassName ?? "fixed inset-0 z-50 h-screen w-screen overflow-y-auto";
+  const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-hidden overflow-y-auto";
   const footerClasses = footerClassName ?? "mt-6 flex w-full gap-3";
 
   return createPortal(

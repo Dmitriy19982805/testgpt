@@ -109,7 +109,7 @@ export function ConfirmActionSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-50 h-screen w-screen flex items-end justify-center">
+    <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center">
       <button
         type="button"
         className={
