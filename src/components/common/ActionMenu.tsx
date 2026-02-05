@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ActionSheet } from "./ActionSheet";
 import { cn } from "../ui/utils";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
@@ -157,13 +158,24 @@ export function ActionMenu({
     const menu = menuRef.current;
     const menuWidth = menu?.offsetWidth ?? 200;
     const menuHeight = menu?.offsetHeight ?? 0;
-    const maxLeft = window.innerWidth - menuWidth - POPOVER_PADDING;
-    let left = rect.right - menuWidth;
-    left = Math.min(Math.max(left, POPOVER_PADDING), Math.max(POPOVER_PADDING, maxLeft));
-    let top = rect.bottom + POPOVER_OFFSET;
-    if (top + menuHeight > window.innerHeight - POPOVER_PADDING) {
-      top = rect.top - menuHeight - POPOVER_OFFSET;
+
+    const preferredBottom = rect.bottom + POPOVER_OFFSET;
+    const preferredTop = rect.top - menuHeight - POPOVER_OFFSET;
+    const preferredRightAlign = rect.right - menuWidth;
+    const preferredLeftAlign = rect.left;
+
+    let top = preferredBottom;
+    if (preferredBottom + menuHeight > window.innerHeight - POPOVER_PADDING) {
+      top = preferredTop;
     }
+
+    let left = preferredRightAlign;
+    if (preferredRightAlign < POPOVER_PADDING) {
+      left = preferredLeftAlign;
+    }
+
+    const maxLeft = window.innerWidth - menuWidth - POPOVER_PADDING;
+    left = Math.min(Math.max(left, POPOVER_PADDING), Math.max(POPOVER_PADDING, maxLeft));
     top = Math.min(
       Math.max(top, POPOVER_PADDING),
       Math.max(POPOVER_PADDING, window.innerHeight - menuHeight - POPOVER_PADDING)
@@ -230,7 +242,7 @@ export function ActionMenu({
 
   const isReady = position.ready && isActive;
 
-  return (
+  const menu = (
     <div
       ref={menuRef}
       className={cn(
@@ -261,4 +273,10 @@ export function ActionMenu({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") {
+    return menu;
+  }
+
+  return createPortal(menu, document.body);
 }
