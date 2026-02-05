@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface CenterModalProps {
@@ -13,6 +14,7 @@ interface CenterModalProps {
   containerClassName?: string;
   headerClassName?: string;
   bodyClassName?: string;
+  footerClassName?: string;
   showCloseButton?: boolean;
 }
 
@@ -27,6 +29,7 @@ export function CenterModal({
   containerClassName,
   headerClassName,
   bodyClassName,
+  footerClassName,
   showCloseButton = false,
 }: CenterModalProps) {
   const titleId = useId();
@@ -146,6 +149,7 @@ export function CenterModal({
   const headerClasses = headerClassName ?? "space-y-1";
   const bodyClasses = bodyClassName ?? "mt-4 space-y-4";
   const containerClasses = containerClassName ?? "fixed inset-0 z-50 overflow-y-auto";
+  const footerClasses = footerClassName ?? "mt-6 flex w-full gap-3";
 
   return createPortal(
     <div className={containerClasses} onClick={(event) => event.stopPropagation()}>
@@ -192,16 +196,16 @@ export function CenterModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-full border border-slate-200/70 p-2 text-slate-500 transition hover:text-slate-900 dark:border-slate-700/70 dark:text-slate-300 dark:hover:text-slate-50"
+                  className="rounded-full border border-slate-200/70 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50"
                   aria-label="Закрыть"
                 >
-                  <span className="text-lg leading-none">×</span>
+                  <X size={16} />
                 </button>
               ) : null}
             </div>
           </div>
           {children ? <div className={bodyClasses}>{children}</div> : null}
-          {footer ? <div className="mt-6 flex w-full gap-3">{footer}</div> : null}
+          {footer ? <div className={footerClasses}>{footer}</div> : null}
         </div>
       </div>
     </div>,
