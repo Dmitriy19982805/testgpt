@@ -19,7 +19,6 @@ interface IngredientFormState {
   baseUnit: BaseUnit | "";
   packSize: string;
   packPrice: string;
-  lossPct: string;
 }
 
 const initialFormState: IngredientFormState = {
@@ -28,7 +27,6 @@ const initialFormState: IngredientFormState = {
   baseUnit: "",
   packSize: "",
   packPrice: "",
-  lossPct: "0",
 };
 
 function validateIngredientForm(values: IngredientFormState) {
@@ -47,11 +45,6 @@ function validateIngredientForm(values: IngredientFormState) {
   if (!values.packPrice || !Number.isFinite(packPrice) || packPrice <= 0) {
     errors.packPrice = "Укажите цену упаковки больше 0.";
   }
-  const lossPct = Number(values.lossPct || 0);
-  if (!Number.isFinite(lossPct) || lossPct < 0 || lossPct > 100) {
-    errors.lossPct = "Потери должны быть от 0 до 100%.";
-  }
-
   return {
     errors,
     parsed: {
@@ -60,7 +53,6 @@ function validateIngredientForm(values: IngredientFormState) {
       baseUnit: (values.baseUnit || "g") as BaseUnit,
       packSize: Number.isFinite(packSize) ? packSize : 0,
       packPrice: Number.isFinite(packPrice) ? packPrice : 0,
-      lossPct: Number(values.lossPct || 0),
     },
     isValid: Object.keys(errors).length === 0,
   };
@@ -73,7 +65,6 @@ function toFormState(ingredient: Ingredient): IngredientFormState {
     baseUnit: ingredient.baseUnit,
     packSize: ingredient.packSize > 0 ? String(ingredient.packSize) : "",
     packPrice: ingredient.packPrice > 0 ? String(ingredient.packPrice) : "",
-    lossPct: String(ingredient.lossPct ?? 0),
   };
 }
 
@@ -133,59 +124,89 @@ export function IngredientsPage() {
   const isUsedByRecipes = (ingredientId: string) =>
     recipes.some((recipe) => recipe.items.some((item) => item.ingredientId === ingredientId));
 
+  const renderIngredientFields = () => (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Название ингредиента</label>
+        <Input
+          placeholder="Например: Сливки 33%"
+          value={formState.name}
+          onChange={(event) => setField("name", event.target.value)}
+        />
+        {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Категория (опционально)</label>
+        <Input
+          placeholder="Например: Молочные"
+          value={formState.category}
+          onChange={(event) => setField("category", event.target.value)}
+        />
+        <p className="text-xs text-slate-500 dark:text-slate-400">Помогает группировать ингредиенты в списке.</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Единица измерения</label>
+        <select
+          value={formState.baseUnit}
+          onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
+          className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
+        >
+          <option value="">Выберите единицу</option>
+          {UNIT_OPTIONS.map((unit) => (
+            <option key={unit.value} value={unit.value}>
+              {unit.label}
+            </option>
+          ))}
+        </select>
+        {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Количество в упаковке</label>
+        <Input
+          type="number"
+          min="0.0001"
+          step="0.01"
+          placeholder="Например: 1000"
+          value={formState.packSize}
+          onChange={(event) => setField("packSize", event.target.value)}
+        />
+        <p className="text-xs text-slate-500 dark:text-slate-400">Введите число больше 0.</p>
+        {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
+      </div>
+
+      <div className="space-y-1.5 md:col-start-1">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Цена упаковки, ₽</label>
+        <Input
+          type="number"
+          min="0.01"
+          step="0.01"
+          placeholder="Например: 320"
+          value={formState.packPrice}
+          onChange={(event) => setField("packPrice", event.target.value)}
+        />
+        {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
+        </p>
+      </div>
+
+      <div className="hidden md:block" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Ингредиенты" description="Справочник сырья с точной ценой за единицу." />
 
-      <GlassCard className="space-y-4 p-5">
+      <GlassCard className="space-y-5 p-6">
         <h3 className="text-lg font-semibold">Новый ингредиент</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1">
-            <Input placeholder="Название" value={formState.name} onChange={(event) => setField("name", event.target.value)} />
-            {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <Input
-              placeholder="Например: Молочные / Сыпучие / Шоколад"
-              value={formState.category}
-              onChange={(event) => setField("category", event.target.value)}
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400">Необязательно.</p>
-          </div>
-          <div className="space-y-1">
-            <select
-              value={formState.baseUnit}
-              onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
-              className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
-            >
-              <option value="">Выберите единицу</option>
-              {UNIT_OPTIONS.map((unit) => (
-                <option key={unit.value} value={unit.value}>
-                  {unit.label}
-                </option>
-              ))}
-            </select>
-            {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Количество в упаковке</p>
-            <Input type="number" min="0.0001" step="0.01" placeholder="Количество в упаковке" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
-            <p className="text-xs text-slate-500 dark:text-slate-400">Например: 1000 (если упаковка 1 кг и единица 'г')</p>
-            {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <Input type="number" min="0.0001" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
-            {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <Input type="number" min="0" max="100" step="0.1" placeholder="Потери, %" value={formState.lossPct} onChange={(event) => setField("lossPct", event.target.value)} />
-            {validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
-          </div>
-          <div className="md:col-span-2 text-sm text-slate-600 dark:text-slate-300">
-            Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
-          </div>
+        {renderIngredientFields()}
+        <div className="flex justify-end pt-1">
+          <Button onClick={() => void saveIngredient()} disabled={!validation.isValid} className="min-w-44">Сохранить ингредиент</Button>
         </div>
-        <Button onClick={() => void saveIngredient()} disabled={!validation.isValid}>Сохранить ингредиент</Button>
       </GlassCard>
 
       {ingredients.length === 0 ? (
@@ -263,46 +284,7 @@ export function IngredientsPage() {
           </>
         }
       >
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1 md:col-span-2">
-            <Input placeholder="Название" value={formState.name} onChange={(event) => setField("name", event.target.value)} />
-            {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <Input placeholder="Например: Молочные / Сыпучие / Шоколад" value={formState.category} onChange={(event) => setField("category", event.target.value)} />
-            <p className="text-xs text-slate-500 dark:text-slate-400">Необязательно.</p>
-          </div>
-          <div className="space-y-1">
-            <select
-              value={formState.baseUnit}
-              onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
-              className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm"
-            >
-              <option value="">Выберите единицу</option>
-              {UNIT_OPTIONS.map((unit) => (
-                <option key={unit.value} value={unit.value}>{unit.label}</option>
-              ))}
-            </select>
-            {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Количество в упаковке</p>
-            <Input type="number" min="0.0001" step="0.01" placeholder="Количество в упаковке" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
-            <p className="text-xs text-slate-500 dark:text-slate-400">Например: 1000 (если упаковка 1 кг и единица 'г')</p>
-            {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
-          </div>
-          <div className="space-y-1">
-            <Input type="number" min="0.0001" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
-            {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
-          </div>
-          <div className="space-y-1 md:col-span-2">
-            <Input type="number" min="0" max="100" step="0.1" placeholder="Потери, %" value={formState.lossPct} onChange={(event) => setField("lossPct", event.target.value)} />
-            {validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
-          </div>
-          <div className="md:col-span-2 text-sm text-slate-600 dark:text-slate-300">
-            Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
-          </div>
-        </div>
+        {renderIngredientFields()}
       </CenterModal>
 
 
