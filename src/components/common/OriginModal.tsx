@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import { useBodyScrollLock } from "./useBodyScrollLock";
 
 interface OriginModalProps {
   open: boolean;
@@ -132,16 +133,7 @@ export function OriginModal({
     return finalize;
   }, [open, isVisible, prefersReducedMotion, transitionDuration]);
 
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isVisible]);
+  useBodyScrollLock(isVisible);
 
   useEffect(() => {
     if (!open) {
