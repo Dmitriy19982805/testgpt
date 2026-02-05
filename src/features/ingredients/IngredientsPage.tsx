@@ -71,6 +71,8 @@ function toFormState(ingredient: Ingredient): IngredientFormState {
 export function IngredientsPage() {
   const { ingredients, recipes, settings, addIngredient, updateIngredient, deleteIngredient } = useAppStore();
   const [formState, setFormState] = useState<IngredientFormState>(initialFormState);
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof IngredientFormState, boolean>>>({});
+  const [formSubmitted, setFormSubmitted] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -99,12 +101,28 @@ export function IngredientsPage() {
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
+  const markFieldTouched = (field: keyof IngredientFormState) => {
+    setTouchedFields((prev) => {
+      if (prev[field]) {
+        return prev;
+      }
+
+      return { ...prev, [field]: true };
+    });
+  };
+
+  const shouldShowError = (field: keyof IngredientFormState) =>
+    Boolean(validation.errors[field]) && (Boolean(touchedFields[field]) || formSubmitted);
+
   const resetForm = () => {
     setFormState(initialFormState);
+    setTouchedFields({});
+    setFormSubmitted(false);
     setEditingIngredient(null);
   };
 
   const saveIngredient = async () => {
+    setFormSubmitted(true);
     if (!validation.isValid) {
       return;
     }
@@ -125,6 +143,8 @@ export function IngredientsPage() {
   const openEdit = (ingredient: Ingredient) => {
     setEditingIngredient(ingredient);
     setFormState(toFormState(ingredient));
+    setTouchedFields({});
+    setFormSubmitted(false);
     setEditModalOpen(true);
   };
 
@@ -139,8 +159,10 @@ export function IngredientsPage() {
           placeholder="Например: Сливки 33%"
           value={formState.name}
           onChange={(event) => setField("name", event.target.value)}
+          onBlur={() => markFieldTouched("name")}
+          className={shouldShowError("name") ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : undefined}
         />
-        {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
+        {shouldShowError("name") ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
       </div>
 
       <div className="space-y-1.5">
@@ -158,7 +180,12 @@ export function IngredientsPage() {
         <select
           value={formState.baseUnit}
           onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
-          className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
+          onBlur={() => markFieldTouched("baseUnit")}
+          className={`h-11 w-full rounded-2xl border bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:ring-2 dark:bg-slate-900/80 dark:text-slate-100 ${
+            shouldShowError("baseUnit")
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100 dark:border-rose-500"
+              : "border-slate-200/70 focus:border-slate-400 focus:ring-slate-200 dark:border-slate-700/70"
+          }`}
         >
           <option value="">Выберите единицу</option>
           {UNIT_OPTIONS.map((unit) => (
@@ -167,7 +194,7 @@ export function IngredientsPage() {
             </option>
           ))}
         </select>
-        {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
+        {shouldShowError("baseUnit") ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
       </div>
 
       <div className="space-y-1.5">
@@ -179,9 +206,11 @@ export function IngredientsPage() {
           placeholder="Например: 1000"
           value={formState.packSize}
           onChange={(event) => setField("packSize", event.target.value)}
+          onBlur={() => markFieldTouched("packSize")}
+          className={shouldShowError("packSize") ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : undefined}
         />
         <p className="text-xs text-slate-500 dark:text-slate-400">Введите число больше 0.</p>
-        {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
+        {shouldShowError("packSize") ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
       </div>
 
       <div className="space-y-1.5 md:col-start-1">
@@ -193,8 +222,10 @@ export function IngredientsPage() {
           placeholder="Например: 320"
           value={formState.packPrice}
           onChange={(event) => setField("packPrice", event.target.value)}
+          onBlur={() => markFieldTouched("packPrice")}
+          className={shouldShowError("packPrice") ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : undefined}
         />
-        {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
+        {shouldShowError("packPrice") ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
         </p>
@@ -212,7 +243,7 @@ export function IngredientsPage() {
         <h3 className="text-lg font-semibold">Новый ингредиент</h3>
         {renderIngredientFields()}
         <div className="flex justify-end pt-1">
-          <Button onClick={() => void saveIngredient()} disabled={!validation.isValid} className="min-w-44">Сохранить ингредиент</Button>
+          <Button onClick={() => void saveIngredient()} className="min-w-44">Сохранить ингредиент</Button>
         </div>
       </GlassCard>
 
@@ -287,7 +318,7 @@ export function IngredientsPage() {
         footer={
           <>
             <Button variant="outline" className="flex-1" onClick={() => setEditModalOpen(false)}>Отмена</Button>
-            <Button className="flex-1" disabled={!validation.isValid} onClick={() => void saveIngredient()}>Сохранить</Button>
+            <Button className="flex-1" onClick={() => void saveIngredient()}>Сохранить</Button>
           </>
         }
       >
