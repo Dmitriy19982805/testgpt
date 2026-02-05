@@ -16,7 +16,7 @@ import { UNIT_OPTIONS, getIngredientUnitPrice, getUnitLabel } from "../recipes/r
 interface IngredientFormState {
   name: string;
   category: string;
-  baseUnit: BaseUnit;
+  baseUnit: BaseUnit | "";
   packSize: string;
   packPrice: string;
   lossPct: string;
@@ -25,7 +25,7 @@ interface IngredientFormState {
 const initialFormState: IngredientFormState = {
   name: "",
   category: "",
-  baseUnit: "g",
+  baseUnit: "",
   packSize: "",
   packPrice: "",
   lossPct: "0",
@@ -36,13 +36,16 @@ function validateIngredientForm(values: IngredientFormState) {
   if (!values.name.trim()) {
     errors.name = "Введите название ингредиента.";
   }
+  if (!values.baseUnit) {
+    errors.baseUnit = "Выберите единицу измерения.";
+  }
   const packSize = Number(values.packSize);
   if (!values.packSize || !Number.isFinite(packSize) || packSize <= 0) {
-    errors.packSize = "Укажите фасовку больше 0.";
+    errors.packSize = "Укажите количество в упаковке больше 0.";
   }
   const packPrice = Number(values.packPrice);
-  if (!values.packPrice || !Number.isFinite(packPrice) || packPrice < 0) {
-    errors.packPrice = "Укажите цену упаковки (0 или больше).";
+  if (!values.packPrice || !Number.isFinite(packPrice) || packPrice <= 0) {
+    errors.packPrice = "Укажите цену упаковки больше 0.";
   }
   const lossPct = Number(values.lossPct || 0);
   if (!Number.isFinite(lossPct) || lossPct < 0 || lossPct > 100) {
@@ -54,9 +57,9 @@ function validateIngredientForm(values: IngredientFormState) {
     parsed: {
       name: values.name.trim(),
       category: values.category.trim(),
-      baseUnit: values.baseUnit,
-      packSize: Number(values.packSize),
-      packPrice: Number(values.packPrice),
+      baseUnit: (values.baseUnit || "g") as BaseUnit,
+      packSize: Number.isFinite(packSize) ? packSize : 0,
+      packPrice: Number.isFinite(packPrice) ? packPrice : 0,
       lossPct: Number(values.lossPct || 0),
     },
     isValid: Object.keys(errors).length === 0,
@@ -68,8 +71,8 @@ function toFormState(ingredient: Ingredient): IngredientFormState {
     name: ingredient.name,
     category: ingredient.category ?? "",
     baseUnit: ingredient.baseUnit,
-    packSize: String(ingredient.packSize),
-    packPrice: String(ingredient.packPrice),
+    packSize: ingredient.packSize > 0 ? String(ingredient.packSize) : "",
+    packPrice: ingredient.packPrice > 0 ? String(ingredient.packPrice) : "",
     lossPct: String(ingredient.lossPct ?? 0),
   };
 }
@@ -83,9 +86,16 @@ export function IngredientsPage() {
   const [confirmDelete, setConfirmDelete] = useState<Ingredient | null>(null);
   const [blockedDeleteIngredient, setBlockedDeleteIngredient] = useState<Ingredient | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [inlineErrorsShown, setInlineErrorsShown] = useState(false);
 
   const validation = useMemo(() => validateIngredientForm(formState), [formState]);
+  const computedUnitPrice = useMemo(() => {
+    const packSize = Number(formState.packSize);
+    const packPrice = Number(formState.packPrice);
+    if (!Number.isFinite(packSize) || !Number.isFinite(packPrice) || packSize <= 0 || packPrice <= 0) {
+      return "—";
+    }
+    return formatCurrency(packPrice / packSize, settings?.currency ?? "RUB");
+  }, [formState.packPrice, formState.packSize, settings?.currency]);
 
   const setField = <K extends keyof IngredientFormState>(field: K, value: IngredientFormState[K]) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -94,11 +104,9 @@ export function IngredientsPage() {
   const resetForm = () => {
     setFormState(initialFormState);
     setEditingIngredient(null);
-    setInlineErrorsShown(false);
   };
 
   const saveIngredient = async () => {
-    setInlineErrorsShown(true);
     if (!validation.isValid) {
       return;
     }
@@ -119,7 +127,6 @@ export function IngredientsPage() {
   const openEdit = (ingredient: Ingredient) => {
     setEditingIngredient(ingredient);
     setFormState(toFormState(ingredient));
-    setInlineErrorsShown(false);
     setEditModalOpen(true);
   };
 
@@ -135,33 +142,47 @@ export function IngredientsPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
             <Input placeholder="Название" value={formState.name} onChange={(event) => setField("name", event.target.value)} />
-            {inlineErrorsShown && validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
+            {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
           </div>
-          <Input placeholder="Категория (опционально)" value={formState.category} onChange={(event) => setField("category", event.target.value)} />
-          <div>
+          <div className="space-y-1">
+            <Input
+              placeholder="Например: Молочные / Сыпучие / Шоколад"
+              value={formState.category}
+              onChange={(event) => setField("category", event.target.value)}
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">Необязательно.</p>
+          </div>
+          <div className="space-y-1">
             <select
               value={formState.baseUnit}
               onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
               className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
             >
+              <option value="">Выберите единицу</option>
               {UNIT_OPTIONS.map((unit) => (
                 <option key={unit.value} value={unit.value}>
                   {unit.label}
                 </option>
               ))}
             </select>
+            {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
           </div>
           <div className="space-y-1">
-            <Input type="number" min="0.0001" step="0.01" placeholder="Фасовка (в базовой ед.)" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
-            {inlineErrorsShown && validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
+            <p className="text-xs text-slate-500 dark:text-slate-400">Количество в упаковке</p>
+            <Input type="number" min="0.0001" step="0.01" placeholder="Количество в упаковке" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
+            <p className="text-xs text-slate-500 dark:text-slate-400">Например: 1000 (если упаковка 1 кг и единица 'г')</p>
+            {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
           </div>
           <div className="space-y-1">
-            <Input type="number" min="0" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
-            {inlineErrorsShown && validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
+            <Input type="number" min="0.0001" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
+            {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
           </div>
           <div className="space-y-1">
             <Input type="number" min="0" max="100" step="0.1" placeholder="Потери, %" value={formState.lossPct} onChange={(event) => setField("lossPct", event.target.value)} />
-            {inlineErrorsShown && validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
+            {validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
+          </div>
+          <div className="md:col-span-2 text-sm text-slate-600 dark:text-slate-300">
+            Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
           </div>
         </div>
         <Button onClick={() => void saveIngredient()} disabled={!validation.isValid}>Сохранить ингредиент</Button>
@@ -245,29 +266,41 @@ export function IngredientsPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1 md:col-span-2">
             <Input placeholder="Название" value={formState.name} onChange={(event) => setField("name", event.target.value)} />
-            {inlineErrorsShown && validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
-          </div>
-          <Input placeholder="Категория" value={formState.category} onChange={(event) => setField("category", event.target.value)} />
-          <select
-            value={formState.baseUnit}
-            onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
-            className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm"
-          >
-            {UNIT_OPTIONS.map((unit) => (
-              <option key={unit.value} value={unit.value}>{unit.label}</option>
-            ))}
-          </select>
-          <div className="space-y-1">
-            <Input type="number" min="0.0001" step="0.01" placeholder="Фасовка" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
-            {inlineErrorsShown && validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
+            {validation.errors.name ? <p className="text-xs text-rose-500">{validation.errors.name}</p> : null}
           </div>
           <div className="space-y-1">
-            <Input type="number" min="0" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
-            {inlineErrorsShown && validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
+            <Input placeholder="Например: Молочные / Сыпучие / Шоколад" value={formState.category} onChange={(event) => setField("category", event.target.value)} />
+            <p className="text-xs text-slate-500 dark:text-slate-400">Необязательно.</p>
+          </div>
+          <div className="space-y-1">
+            <select
+              value={formState.baseUnit}
+              onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
+              className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm"
+            >
+              <option value="">Выберите единицу</option>
+              {UNIT_OPTIONS.map((unit) => (
+                <option key={unit.value} value={unit.value}>{unit.label}</option>
+              ))}
+            </select>
+            {validation.errors.baseUnit ? <p className="text-xs text-rose-500">{validation.errors.baseUnit}</p> : null}
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Количество в упаковке</p>
+            <Input type="number" min="0.0001" step="0.01" placeholder="Количество в упаковке" value={formState.packSize} onChange={(event) => setField("packSize", event.target.value)} />
+            <p className="text-xs text-slate-500 dark:text-slate-400">Например: 1000 (если упаковка 1 кг и единица 'г')</p>
+            {validation.errors.packSize ? <p className="text-xs text-rose-500">{validation.errors.packSize}</p> : null}
+          </div>
+          <div className="space-y-1">
+            <Input type="number" min="0.0001" step="0.01" placeholder="Цена упаковки" value={formState.packPrice} onChange={(event) => setField("packPrice", event.target.value)} />
+            {validation.errors.packPrice ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
           </div>
           <div className="space-y-1 md:col-span-2">
             <Input type="number" min="0" max="100" step="0.1" placeholder="Потери, %" value={formState.lossPct} onChange={(event) => setField("lossPct", event.target.value)} />
-            {inlineErrorsShown && validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
+            {validation.errors.lossPct ? <p className="text-xs text-rose-500">{validation.errors.lossPct}</p> : null}
+          </div>
+          <div className="md:col-span-2 text-sm text-slate-600 dark:text-slate-300">
+            Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
           </div>
         </div>
       </CenterModal>
