@@ -363,11 +363,25 @@ export function IngredientsPage() {
         }}
         title="Редактирование ингредиента"
         description="Обновите параметры упаковки и цены"
-        className="glass-card max-w-[560px] rounded-2xl border border-white/40 px-6 py-6"
+        className="w-[min(920px,92vw)] max-h-[88vh] overflow-hidden rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-2xl md:p-5"
+        containerClassName="fixed inset-0 z-50 h-screen w-screen overflow-hidden"
+        headerClassName="shrink-0 space-y-1"
+        bodyClassName="mt-4 max-h-[calc(88vh-190px)] overflow-y-auto pr-1"
+        footerClassName="sticky bottom-0 mt-4 flex w-full gap-3 border-t border-slate-200/70 bg-white pt-4"
+        showCloseButton
         footer={
           <>
-            <Button variant="outline" className="flex-1" onClick={() => setEditModalOpen(false)}>Отмена</Button>
-            <Button className="flex-1" onClick={() => void saveIngredient()}>Сохранить</Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => {
+                setEditModalOpen(false);
+                resetForm();
+              }}
+            >
+              Отмена
+            </Button>
+            <Button className="flex-1 rounded-2xl" onClick={() => void saveIngredient()}>Сохранить</Button>
           </>
         }
       >
