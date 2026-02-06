@@ -13,12 +13,12 @@ interface IngredientSelectProps {
   onQueryChange: (value: string) => void;
   onSelect: (ingredient: Ingredient) => void;
   onDuplicateAttempt: () => void;
-  onTouched: () => void;
-  onNavigateToIngredients: () => void;
+  onInteract: () => void;
 }
 
 const MENU_OFFSET = 6;
 const VIEWPORT_PADDING = 12;
+const MAX_RESULTS = 10;
 
 export function IngredientSelect({
   ingredients,
@@ -29,24 +29,41 @@ export function IngredientSelect({
   onQueryChange,
   onSelect,
   onDuplicateAttempt,
-  onTouched,
-  onNavigateToIngredients,
+  onInteract,
 }: IngredientSelectProps) {
-  const [open, setOpen] = useState(false);
+  const [localQuery, setLocalQuery] = useState(query);
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
+
   const filteredIngredients = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = localQuery.trim().toLocaleLowerCase("ru-RU");
     if (!normalizedQuery) {
-      return ingredients;
+      return ingredients.slice(0, MAX_RESULTS);
     }
-    return ingredients.filter((ingredient) => {
-      const category = ingredient.category?.trim().toLowerCase() ?? "";
-      return ingredient.name.toLowerCase().includes(normalizedQuery) || category.includes(normalizedQuery);
-    });
-  }, [ingredients, query]);
+    return ingredients
+      .filter((ingredient) => {
+        const name = ingredient.name.toLocaleLowerCase("ru-RU");
+        const category = ingredient.category?.trim().toLocaleLowerCase("ru-RU") ?? "";
+        return name.includes(normalizedQuery) || category.includes(normalizedQuery);
+      })
+      .slice(0, MAX_RESULTS);
+  }, [ingredients, localQuery]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const nextIndex = filteredIngredients.findIndex((ingredient) => ingredient.id === selectedIngredientId);
+    setHighlightedIndex(nextIndex >= 0 ? nextIndex : filteredIngredients.length > 0 ? 0 : -1);
+  }, [isOpen, filteredIngredients, selectedIngredientId]);
 
   const updatePosition = () => {
     const wrapper = wrapperRef.current;
@@ -74,14 +91,14 @@ export function IngredientSelect({
   };
 
   useLayoutEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       return;
     }
     updatePosition();
-  }, [open, query, filteredIngredients.length]);
+  }, [isOpen, localQuery, filteredIngredients.length]);
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       return;
     }
     const handleUpdate = () => updatePosition();
@@ -93,7 +110,8 @@ export function IngredientSelect({
       if (wrapperRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
       }
-      setOpen(false);
+      setIsOpen(false);
+      setHighlightedIndex(-1);
     };
     window.addEventListener("resize", handleUpdate);
     window.addEventListener("scroll", handleUpdate, true);
@@ -105,66 +123,99 @@ export function IngredientSelect({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("touchstart", handleOutside);
     };
-  }, [open]);
+  }, [isOpen]);
+
+  const selectIngredient = (ingredient: Ingredient) => {
+    const isDisabled = excludedIngredientIds.has(ingredient.id) && ingredient.id !== selectedIngredientId;
+    if (isDisabled) {
+      onDuplicateAttempt();
+      return;
+    }
+    onSelect(ingredient);
+    setLocalQuery(ingredient.name);
+    onQueryChange(ingredient.name);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
 
   return (
     <div className="space-y-1" ref={wrapperRef}>
       <label className="text-xs text-slate-500">Ингредиент</label>
       <input
-        value={query}
+        ref={inputRef}
+        value={localQuery}
         onChange={(event) => {
-          onQueryChange(event.target.value);
-          setOpen(true);
+          const nextQuery = event.target.value;
+          setLocalQuery(nextQuery);
+          onQueryChange(nextQuery);
+          setIsOpen(nextQuery.trim().length >= 1);
+          onInteract();
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={onTouched}
+        onFocus={() => {
+          setIsOpen(true);
+          onInteract();
+        }}
+        onKeyDown={(event) => {
+          if (!isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+            setIsOpen(true);
+            return;
+          }
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            if (filteredIngredients.length === 0) {
+              return;
+            }
+            setHighlightedIndex((prev) => (prev + 1 >= filteredIngredients.length ? 0 : prev + 1));
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            if (filteredIngredients.length === 0) {
+              return;
+            }
+            setHighlightedIndex((prev) => (prev <= 0 ? filteredIngredients.length - 1 : prev - 1));
+          } else if (event.key === "Enter") {
+            if (!isOpen) {
+              return;
+            }
+            event.preventDefault();
+            const ingredient = highlightedIndex >= 0 ? filteredIngredients[highlightedIndex] : filteredIngredients[0];
+            if (ingredient) {
+              selectIngredient(ingredient);
+            }
+          } else if (event.key === "Escape") {
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+          }
+        }}
         placeholder="Найти и выбрать ингредиент"
         className="flex h-11 w-full rounded-2xl border border-slate-200/70 bg-white px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
       />
 
-      {open
+      {isOpen
         ? createPortal(
             <div
               ref={menuRef}
               style={{ top: position.top, left: position.left, width: position.width }}
-              className="fixed z-[220] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]"
+              className="fixed z-[320] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]"
             >
               {ingredients.length === 0 ? (
-                <div className="space-y-3 p-3 text-sm">
-                  <p className="text-slate-600">Ингредиентов пока нет. Добавьте их в разделе «Ингредиенты».</p>
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-slate-700 underline underline-offset-2"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      setOpen(false);
-                      onNavigateToIngredients();
-                    }}
-                  >
-                    Перейти в ингредиенты
-                  </button>
-                </div>
+                <p className="p-3 text-sm text-slate-500">No ingredients yet. Add them in Ingredients section.</p>
               ) : filteredIngredients.length === 0 ? (
-                <p className="p-3 text-sm text-slate-500">Ничего не найдено.</p>
+                <p className="p-3 text-sm text-slate-500">No matches</p>
               ) : (
-                filteredIngredients.map((ingredient) => {
+                filteredIngredients.map((ingredient, index) => {
                   const category = ingredient.category?.trim();
                   const isDisabled = excludedIngredientIds.has(ingredient.id) && ingredient.id !== selectedIngredientId;
+                  const isHighlighted = highlightedIndex === index;
                   return (
                     <button
                       type="button"
                       key={ingredient.id}
                       className="block w-full rounded-xl px-3 py-2 text-left transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={isDisabled}
+                      onMouseEnter={() => setHighlightedIndex(index)}
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        if (isDisabled) {
-                          onDuplicateAttempt();
-                          return;
-                        }
-                        onSelect(ingredient);
-                        setOpen(false);
-                      }}
+                      onClick={() => selectIngredient(ingredient)}
+                      style={isHighlighted ? { backgroundColor: "rgb(241 245 249)" } : undefined}
                     >
                       <p className="text-sm text-slate-800">
                         {ingredient.name}

@@ -1,6 +1,5 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { MoreVertical, Plus, Trash2, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -90,7 +89,6 @@ export function RecipesPage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [duplicateRowWarning, setDuplicateRowWarning] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const navigate = useNavigate();
 
   const parsedItems = useMemo(() => {
     return formState.items.map((item) => {
@@ -465,11 +463,7 @@ export function RecipesPage() {
                         setDuplicateRowWarning(item.id);
                         markTouched("items");
                       }}
-                      onTouched={() => markTouched("items")}
-                      onNavigateToIngredients={() => {
-                        setShowFormModal(false);
-                        navigate("/app/ingredients");
-                      }}
+                      onInteract={() => markTouched("items")}
                     />
                     {duplicateRowWarning === item.id ? <p className="text-xs text-amber-600">Уже добавлен</p> : null}
                   </div>
