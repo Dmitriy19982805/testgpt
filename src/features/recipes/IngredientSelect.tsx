@@ -18,7 +18,7 @@ interface IngredientSelectProps {
 
 const MENU_OFFSET = 6;
 const VIEWPORT_PADDING = 12;
-const MAX_RESULTS = 10;
+const MAX_RESULTS = 8;
 
 export function IngredientSelect({
   ingredients,
@@ -38,24 +38,22 @@ export function IngredientSelect({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     setLocalQuery(query);
   }, [query]);
 
+  const normalizedQuery = localQuery.trim().toLowerCase();
+
   const filteredIngredients = useMemo(() => {
-    const normalizedQuery = localQuery.trim().toLocaleLowerCase("ru-RU");
-    if (!normalizedQuery) {
-      return ingredients.slice(0, MAX_RESULTS);
+    if (normalizedQuery.length < 1) {
+      return [];
     }
-    return ingredients
-      .filter((ingredient) => {
-        const name = ingredient.name.toLocaleLowerCase("ru-RU");
-        const category = ingredient.category?.trim().toLocaleLowerCase("ru-RU") ?? "";
-        return name.includes(normalizedQuery) || category.includes(normalizedQuery);
-      })
-      .slice(0, MAX_RESULTS);
-  }, [ingredients, localQuery]);
+    return ingredients.filter((ingredient) => ingredient.name.toLowerCase().includes(normalizedQuery)).slice(0, MAX_RESULTS);
+  }, [ingredients, normalizedQuery]);
+
+  const shouldShowDropdown = isOpen && normalizedQuery.length >= 1;
 
   useEffect(() => {
     if (!isOpen) {
@@ -66,12 +64,12 @@ export function IngredientSelect({
   }, [isOpen, filteredIngredients, selectedIngredientId]);
 
   const updatePosition = () => {
-    const wrapper = wrapperRef.current;
+    const input = inputRef.current;
     const menu = menuRef.current;
-    if (!wrapper || !menu) {
+    if (!input || !menu) {
       return;
     }
-    const rect = wrapper.getBoundingClientRect();
+    const rect = input.getBoundingClientRect();
     const menuHeight = menu.offsetHeight;
 
     const bottomTop = rect.bottom + MENU_OFFSET;
@@ -91,14 +89,14 @@ export function IngredientSelect({
   };
 
   useLayoutEffect(() => {
-    if (!isOpen) {
+    if (!shouldShowDropdown) {
       return;
     }
     updatePosition();
-  }, [isOpen, localQuery, filteredIngredients.length]);
+  }, [shouldShowDropdown, localQuery, filteredIngredients.length]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!shouldShowDropdown) {
       return;
     }
     const handleUpdate = () => updatePosition();
@@ -123,7 +121,15 @@ export function IngredientSelect({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("touchstart", handleOutside);
     };
-  }, [isOpen]);
+  }, [shouldShowDropdown]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const selectIngredient = (ingredient: Ingredient) => {
     const isDisabled = excludedIngredientIds.has(ingredient.id) && ingredient.id !== selectedIngredientId;
@@ -148,15 +154,25 @@ export function IngredientSelect({
           const nextQuery = event.target.value;
           setLocalQuery(nextQuery);
           onQueryChange(nextQuery);
-          setIsOpen(nextQuery.trim().length >= 1);
-          onInteract();
-        }}
-        onFocus={() => {
           setIsOpen(true);
           onInteract();
         }}
+        onFocus={() => {
+          if (closeTimeoutRef.current !== null) {
+            window.clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+          }
+          setIsOpen(true);
+          onInteract();
+        }}
+        onBlur={() => {
+          closeTimeoutRef.current = window.setTimeout(() => {
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+          }, 150);
+        }}
         onKeyDown={(event) => {
-          if (!isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+          if (!shouldShowDropdown && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
             setIsOpen(true);
             return;
           }
@@ -173,7 +189,7 @@ export function IngredientSelect({
             }
             setHighlightedIndex((prev) => (prev <= 0 ? filteredIngredients.length - 1 : prev - 1));
           } else if (event.key === "Enter") {
-            if (!isOpen) {
+            if (!shouldShowDropdown) {
               return;
             }
             event.preventDefault();
@@ -190,12 +206,12 @@ export function IngredientSelect({
         className="flex h-11 w-full rounded-2xl border border-slate-200/70 bg-white px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
       />
 
-      {isOpen
+      {shouldShowDropdown
         ? createPortal(
             <div
               ref={menuRef}
               style={{ top: position.top, left: position.left, width: position.width }}
-              className="fixed z-[320] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]"
+              className="fixed z-[10000] max-h-[240px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]"
             >
               {ingredients.length === 0 ? (
                 <p className="p-3 text-sm text-slate-500">No ingredients yet. Add them in Ingredients section.</p>
