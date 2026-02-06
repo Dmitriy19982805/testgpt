@@ -1,5 +1,6 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { MoreVertical, Plus, Trash2, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -12,6 +13,7 @@ import { ConfirmModal } from "../../components/common/ConfirmModal";
 import { CenterModal } from "../../components/common/CenterModal";
 import { ActionMenu } from "../../components/common/ActionMenu";
 import { getIngredientUnitPrice, getRecipeCosts, getUnitLabel, UNIT_OPTIONS } from "./recipeUtils";
+import { IngredientSelect } from "./IngredientSelect";
 
 interface EditableRecipeItem {
   id: string;
@@ -86,7 +88,9 @@ export function RecipesPage() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [touchedFields, setTouchedFields] = useState<Partial<Record<RecipeField, boolean>>>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [duplicateRowWarning, setDuplicateRowWarning] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const navigate = useNavigate();
 
   const parsedItems = useMemo(() => {
     return formState.items.map((item) => {
@@ -197,6 +201,7 @@ export function RecipesPage() {
     setEditingRecipe(null);
     setTouchedFields({});
     setFormSubmitted(false);
+    setDuplicateRowWarning(null);
   };
 
   const openCreate = () => {
@@ -215,6 +220,7 @@ export function RecipesPage() {
 
   const addItemRow = () => {
     setFormState((prev) => ({ ...prev, items: [...prev.items, createDraftItem()] }));
+    setDuplicateRowWarning(null);
   };
 
   const updateItemRow = (id: string, patch: Partial<EditableRecipeItem>) => {
@@ -226,6 +232,9 @@ export function RecipesPage() {
 
   const removeItemRow = (id: string) => {
     setFormState((prev) => ({ ...prev, items: prev.items.filter((item) => item.id !== id) }));
+    if (duplicateRowWarning === id) {
+      setDuplicateRowWarning(null);
+    }
     markTouched("items");
   };
 
@@ -423,34 +432,46 @@ export function RecipesPage() {
               return (
                 <div key={item.id} className="grid gap-3 rounded-2xl border border-slate-200/70 bg-white p-3 md:grid-cols-[1.2fr_0.8fr_110px_auto] md:items-center">
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500">Ингредиент</label>
-                    <Input
-                      list={`recipe-ingredients-${item.id}`}
-                      value={item.ingredientQuery || selectedIngredient?.name || ""}
-                      onChange={(event) => {
-                        const nextQuery = event.target.value;
-                        const matchedIngredient = ingredients.find((ingredient) => ingredient.name === nextQuery);
-                        if (!matchedIngredient) {
-                          updateItemRow(item.id, { ingredientId: "", ingredientQuery: nextQuery });
-                          markTouched("items");
-                          return;
+                    <IngredientSelect
+                      ingredients={ingredients}
+                      selectedIngredientId={item.ingredientId}
+                      query={item.ingredientQuery || selectedIngredient?.name || ""}
+                      currency={settings?.currency ?? "RUB"}
+                      excludedIngredientIds={unavailableIngredientIds}
+                      onQueryChange={(nextQuery) => {
+                        const selectedName = selectedIngredient?.name ?? "";
+                        const matchedIngredient = ingredients.find((ingredient) => ingredient.name.toLowerCase() === nextQuery.trim().toLowerCase());
+                        if (matchedIngredient && (!unavailableIngredientIds.has(matchedIngredient.id) || matchedIngredient.id === item.ingredientId)) {
+                          updateItemRow(item.id, { ingredientId: matchedIngredient.id, ingredientQuery: "" });
+                          setDuplicateRowWarning(null);
+                        } else {
+                          updateItemRow(item.id, {
+                            ingredientId: nextQuery === selectedName ? item.ingredientId : "",
+                            ingredientQuery: nextQuery,
+                          });
                         }
-                        if (unavailableIngredientIds.has(matchedIngredient.id)) {
-                          return;
-                        }
-                        updateItemRow(item.id, { ingredientId: matchedIngredient.id, ingredientQuery: "" });
                         markTouched("items");
                       }}
-                      onBlur={() => markTouched("items")}
-                      placeholder="Найти и выбрать ингредиент"
+                      onSelect={(ingredient) => {
+                        if (unavailableIngredientIds.has(ingredient.id)) {
+                          setDuplicateRowWarning(item.id);
+                          return;
+                        }
+                        updateItemRow(item.id, { ingredientId: ingredient.id, ingredientQuery: "" });
+                        setDuplicateRowWarning(null);
+                        markTouched("items");
+                      }}
+                      onDuplicateAttempt={() => {
+                        setDuplicateRowWarning(item.id);
+                        markTouched("items");
+                      }}
+                      onTouched={() => markTouched("items")}
+                      onNavigateToIngredients={() => {
+                        setShowFormModal(false);
+                        navigate("/app/ingredients");
+                      }}
                     />
-                    <datalist id={`recipe-ingredients-${item.id}`}>
-                      {ingredients
-                        .filter((ingredient) => !unavailableIngredientIds.has(ingredient.id) || ingredient.id === item.ingredientId)
-                        .map((ingredient) => (
-                          <option key={ingredient.id} value={ingredient.name} />
-                        ))}
-                    </datalist>
+                    {duplicateRowWarning === item.id ? <p className="text-xs text-amber-600">Уже добавлен</p> : null}
                   </div>
 
                   <div className="space-y-1">
