@@ -39,8 +39,14 @@ export function CenterModal({
   const [isVisible, setIsVisible] = useState(open);
   const [isActive, setIsActive] = useState(false);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const prevOpenRef = useRef(open);
+  const onOpenChangeRef = useRef(onOpenChange);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const transitionDuration = prefersReducedMotion ? 0 : 260;
+
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  }, [onOpenChange]);
 
   useEffect(() => {
     if (open) {
@@ -110,16 +116,22 @@ export function CenterModal({
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown, true);
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
-      lastFocusedRef.current?.focus();
     };
-  }, [open, onOpenChange]);
+  }, [open]);
+
+  useEffect(() => {
+    if (prevOpenRef.current && !open) {
+      lastFocusedRef.current?.focus();
+    }
+    prevOpenRef.current = open;
+  }, [open]);
 
   if (!isVisible) {
     return null;
