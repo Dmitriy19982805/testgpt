@@ -438,16 +438,24 @@ export function RecipesPage() {
                       excludedIngredientIds={unavailableIngredientIds}
                       onQueryChange={(nextQuery) => {
                         const selectedName = selectedIngredient?.name ?? "";
-                        const matchedIngredient = ingredients.find((ingredient) => ingredient.name.toLowerCase() === nextQuery.trim().toLowerCase());
-                        if (matchedIngredient && (!unavailableIngredientIds.has(matchedIngredient.id) || matchedIngredient.id === item.ingredientId)) {
-                          updateItemRow(item.id, { ingredientId: matchedIngredient.id, ingredientQuery: "" });
-                          setDuplicateRowWarning(null);
-                        } else {
-                          updateItemRow(item.id, {
-                            ingredientId: nextQuery === selectedName ? item.ingredientId : "",
-                            ingredientQuery: nextQuery,
-                          });
+                        updateItemRow(item.id, {
+                          ingredientId: nextQuery === selectedName ? item.ingredientId : "",
+                          ingredientQuery: nextQuery,
+                        });
+                        markTouched("items");
+                      }}
+                      onInputBlur={(rawQuery) => {
+                        const matchedIngredient = ingredients.find((ingredient) => ingredient.name.toLowerCase() === rawQuery.trim().toLowerCase());
+                        if (!matchedIngredient) {
+                          return;
                         }
+                        if (unavailableIngredientIds.has(matchedIngredient.id) && matchedIngredient.id !== item.ingredientId) {
+                          setDuplicateRowWarning(item.id);
+                          markTouched("items");
+                          return;
+                        }
+                        updateItemRow(item.id, { ingredientId: matchedIngredient.id, ingredientQuery: "" });
+                        setDuplicateRowWarning(null);
                         markTouched("items");
                       }}
                       onSelect={(ingredient) => {
