@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 let lockCount = 0;
 let previousHtmlOverflow = "";
+let previousBodyPaddingRight = "";
 
 function lockPageScroll() {
   if (typeof document === "undefined" || typeof window === "undefined") {
@@ -9,9 +10,16 @@ function lockPageScroll() {
   }
 
   const html = document.documentElement;
+  const body = document.body;
   if (lockCount === 0) {
     previousHtmlOverflow = html.style.overflow;
+    previousBodyPaddingRight = body.style.paddingRight;
+
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
     html.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
   }
 
   lockCount += 1;
@@ -28,7 +36,9 @@ function unlockPageScroll() {
   }
 
   const html = document.documentElement;
+  const body = document.body;
   html.style.overflow = previousHtmlOverflow;
+  body.style.paddingRight = previousBodyPaddingRight;
 }
 
 export function useBodyScrollLock(locked: boolean) {

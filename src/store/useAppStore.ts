@@ -311,6 +311,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       name: recipeInput.name.trim(),
       category: recipeInput.category?.trim() ?? "",
       notes: recipeInput.notes?.trim() ?? "",
+      fileName: recipeInput.fileName?.trim() ?? "",
+      fileUrl: recipeInput.fileUrl ?? "",
       createdAt: now,
       updatedAt: now,
     };
@@ -324,6 +326,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       name: recipe.name.trim(),
       category: recipe.category?.trim() ?? "",
       notes: recipe.notes?.trim() ?? "",
+      fileName: recipe.fileName?.trim() ?? "",
+      fileUrl: recipe.fileUrl ?? "",
       updatedAt: new Date().toISOString(),
     };
     await db.recipes.put(nextRecipe);

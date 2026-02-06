@@ -81,7 +81,8 @@ export class ConfectionerDB extends Dexie {
                 if (!ingredientId || amount <= 0) {
                   return null;
                 }
-                return { ingredientId, amount, unit };
+                const rowCost = typeof item.rowCost === "number" ? item.rowCost : undefined;
+                return { ingredientId, amount, unit, rowCost };
               })
               .filter(Boolean);
 
@@ -101,6 +102,8 @@ export class ConfectionerDB extends Dexie {
               yieldUnit,
               items,
               notes: typeof raw.notes === "string" ? raw.notes : "",
+              fileName: typeof raw.fileName === "string" ? raw.fileName : "",
+              fileUrl: typeof raw.fileUrl === "string" ? raw.fileUrl : "",
               createdAt: typeof raw.createdAt === "string" ? raw.createdAt : now,
               updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : now,
             });
