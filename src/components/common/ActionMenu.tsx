@@ -246,7 +246,7 @@ export function ActionMenu({
     <div
       ref={menuRef}
       className={cn(
-        "fixed z-50 min-w-[180px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-top-right",
+        "fixed z-[12000] min-w-[180px] transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0 origin-top-right",
         isReady
           ? "opacity-100 translate-y-0 scale-100"
           : "opacity-0 translate-y-2 scale-[0.98]"

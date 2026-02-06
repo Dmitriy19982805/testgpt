@@ -112,6 +112,7 @@ export interface RecipeItem {
   ingredientId: string;
   amount: number;
   unit: BaseUnit;
+  rowCost?: number;
 }
 
 export interface Recipe {
@@ -122,6 +123,8 @@ export interface Recipe {
   yieldUnit: BaseUnit;
   items: RecipeItem[];
   notes?: string;
+  fileName?: string;
+  fileUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
