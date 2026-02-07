@@ -1,5 +1,10 @@
 import type { BaseUnit, Ingredient, Recipe, RecipeItem, RecipeSection } from "../../db/types";
 
+export interface ProductTypeOption {
+  value: string;
+  label: string;
+}
+
 export const UNIT_OPTIONS: Array<{ label: string; value: BaseUnit }> = [
   { label: "г", value: "g" },
   { label: "мл", value: "ml" },
@@ -138,4 +143,45 @@ export function detectRecipeName(text: string): string {
     .find((line) => line.length >= 4 && !/\d/.test(line));
 
   return candidate ?? "Рецепт из PDF";
+}
+
+const MULTI_SPACE_PATTERN = /\s{2,}/g;
+const LETTERS_AND_SPACES_PATTERN = /^[\p{L}\s-]+$/u;
+
+export function formatProductTypeLabel(value: string): string {
+  if (!LETTERS_AND_SPACES_PATTERN.test(value)) {
+    return value;
+  }
+  const lowered = value.toLocaleLowerCase("ru-RU");
+  return lowered.charAt(0).toLocaleUpperCase("ru-RU") + lowered.slice(1);
+}
+
+export function normalizeProductType(value?: string): string | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.trim().replace(MULTI_SPACE_PATTERN, " ");
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function getProductTypesFromRecipes(recipes: Recipe[]): ProductTypeOption[] {
+  const byKey = new Map<string, ProductTypeOption>();
+
+  recipes.forEach((recipe) => {
+    const normalized = normalizeProductType(recipe.category);
+    if (!normalized) {
+      return;
+    }
+    const key = normalized.toLocaleLowerCase("ru-RU");
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        value: normalized,
+        label: formatProductTypeLabel(normalized),
+      });
+    }
+  });
+
+  return Array.from(byKey.values()).sort((left, right) =>
+    left.label.localeCompare(right.label, "ru-RU", { sensitivity: "base" })
+  );
 }
