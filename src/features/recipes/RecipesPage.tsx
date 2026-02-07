@@ -1,4 +1,4 @@
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -97,6 +97,7 @@ export function RecipesPage() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [newSectionIdToFocus, setNewSectionIdToFocus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const formatRecipePrice = (value: number) => formatCurrency(value, settings?.currency ?? "RUB", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
@@ -215,16 +216,35 @@ export function RecipesPage() {
 
   const openCreate = () => {
     resetForm();
-    setFormState((prev) => ({ ...prev, sections: [createDraftSection()] }));
+    const initialSection = createDraftSection();
+    setFormState((prev) => ({ ...prev, sections: [initialSection] }));
+    setNewSectionIdToFocus(initialSection.id);
     setShowFormModal(true);
   };
 
   const openEdit = (recipe: Recipe) => {
     setEditingRecipe(recipe);
     setFormState(toForm(recipe));
+    setNewSectionIdToFocus(null);
     setFormSubmitted(false);
     setShowFormModal(true);
   };
+
+  const addSection = () => {
+    const newSection = createDraftSection();
+    setFormState((prev) => ({ ...prev, sections: [newSection, ...prev.sections] }));
+    setNewSectionIdToFocus(newSection.id);
+  };
+
+  useEffect(() => {
+    if (!showFormModal || !newSectionIdToFocus) {
+      return;
+    }
+    const scrollContainer = document.querySelector(".recipes-form-modal-body");
+    if (scrollContainer instanceof HTMLElement) {
+      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [showFormModal, newSectionIdToFocus]);
 
   const saveRecipe = async () => {
     setFormSubmitted(true);
@@ -312,10 +332,16 @@ export function RecipesPage() {
 
       <CenterModal
         open={showFormModal}
-        onOpenChange={(open) => { setShowFormModal(open); if (!open) { resetForm(); } }}
+        onOpenChange={(open) => {
+          setShowFormModal(open);
+          if (!open) {
+            resetForm();
+            setNewSectionIdToFocus(null);
+          }
+        }}
         title={editingRecipe ? "Редактировать рецепт" : "Добавить рецепт"}
         className="w-[95vw] max-w-[920px] rounded-3xl border border-slate-200/70 bg-white px-6 py-6"
-        bodyClassName="mt-5 max-h-[72vh] space-y-6 overflow-y-auto pr-1"
+        bodyClassName="recipes-form-modal-body mt-5 max-h-[72vh] space-y-6 overflow-y-auto pr-1"
         footer={<><Button variant="outline" className="flex-1" onClick={() => setShowFormModal(false)}>Отмена</Button><Button className="flex-1" onClick={() => void saveRecipe()}>Сохранить</Button></>}
       >
         <section className="grid gap-4 md:grid-cols-2">
@@ -325,13 +351,13 @@ export function RecipesPage() {
         </section>
 
         <section className="space-y-4">
-          <div className="flex items-center justify-between"><h3 className="text-sm font-semibold uppercase text-slate-500">Секции рецепта</h3><Button type="button" variant="outline" onClick={() => setFormState((prev) => ({ ...prev, sections: [...prev.sections, createDraftSection()] }))}><Plus className="mr-2" size={14} />Добавить секцию</Button></div>
+          <div className="flex items-center justify-between"><h3 className="text-sm font-semibold uppercase text-slate-500">Секции рецепта</h3><Button type="button" variant="outline" onClick={addSection}><Plus className="mr-2" size={14} />Добавить секцию</Button></div>
           {formState.sections.map((section, sectionIndex) => {
             const sectionCost = sectionCosts[section.id] ?? 0;
             return (
               <div key={section.id} className="space-y-3 rounded-2xl border border-slate-200/80 p-4">
                 <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Название секции</label><Input value={section.name} onChange={(event) => updateSection(section.id, { name: event.target.value })} /></div>
+                  <div className="space-y-1"><label className="text-xs text-slate-500">Название секции</label><Input autoFocus={newSectionIdToFocus === section.id} value={section.name} onChange={(event) => updateSection(section.id, { name: event.target.value })} onFocus={() => { if (newSectionIdToFocus === section.id) { setNewSectionIdToFocus(null); } }} /></div>
                   <div className="space-y-1"><label className="text-xs text-slate-500">Выход (опц.)</label><Input type="number" min="0.01" step="0.01" value={section.outputAmount} onChange={(event) => updateSection(section.id, { outputAmount: event.target.value })} /></div>
                   <div className="space-y-1"><label className="text-xs text-slate-500">Используем в финале (опц.)</label><Input type="number" min="0.01" step="0.01" value={section.usageAmount} onChange={(event) => updateSection(section.id, { usageAmount: event.target.value })} /></div>
                   <div className="flex gap-1">
