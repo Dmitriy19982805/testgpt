@@ -12,6 +12,11 @@ import { t } from "../../i18n";
 import { formatCurrency } from "../../utils/currency";
 import { resolveDueTime, toDueAtIso } from "../../utils/date";
 import { NewCustomerModal } from "../customers/NewCustomerModal";
+import {
+  formatProductTypeLabel,
+  getProductTypesFromRecipes,
+  normalizeProductType,
+} from "../recipes/recipeUtils";
 
 const schema = z
   .object({
@@ -212,7 +217,7 @@ export function OrderFormContent({
         dueTime,
         customerId,
         customerName,
-        dessertType: values.dessertType ?? "",
+        dessertType: normalizeProductType(values.dessertType) ?? "",
         recipeId: values.recipeId ?? "",
         flavor: values.flavor ?? "",
         size: values.size ?? "",
@@ -245,7 +250,7 @@ export function OrderFormContent({
       dueTime,
       customerId,
       customerName,
-      dessertType: values.dessertType ?? "",
+      dessertType: normalizeProductType(values.dessertType) ?? "",
       recipeId: values.recipeId ?? "",
       flavor: values.flavor ?? "",
       size: values.size ?? "",
@@ -313,6 +318,16 @@ export function OrderFormContent({
 
   const isModalLayout = layout === "modal";
   const selectedRecipe = recipes.find((recipe) => recipe.id === recipeId);
+  const productTypeOptions = useMemo(() => getProductTypesFromRecipes(recipes), [recipes]);
+  const normalizedSelectedDessertType = useMemo(
+    () => normalizeProductType(dessertType),
+    [dessertType]
+  );
+  const hasNoProductTypes = productTypeOptions.length === 0;
+  const hasStaleDessertType = Boolean(
+    normalizedSelectedDessertType &&
+      !productTypeOptions.some((option) => option.value === normalizedSelectedDessertType)
+  );
   const dessertSizePlaceholder = useMemo(() => {
     switch (dessertType) {
       case "Торт":
@@ -337,6 +352,12 @@ export function OrderFormContent({
       setValue("flavor", selectedRecipe.name, { shouldValidate: false });
     }
   }, [flavor, recipeId, selectedRecipe, setValue]);
+
+  useEffect(() => {
+    if (dessertType && normalizedSelectedDessertType && dessertType !== normalizedSelectedDessertType) {
+      setValue("dessertType", normalizedSelectedDessertType, { shouldValidate: false });
+    }
+  }, [dessertType, normalizedSelectedDessertType, setValue]);
 
   return (
     <form
@@ -473,17 +494,25 @@ export function OrderFormContent({
                 <div className="space-y-1">
                   <label className="text-xs text-slate-500">Тип десерта</label>
                   <select
-                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/70 dark:bg-slate-900/80"
+                    disabled={hasNoProductTypes}
                     {...register("dessertType")}
                   >
-                    <option value="">Выберите тип</option>
-                    {["Торт", "Бенто", "Капкейки", "Макаронс", "Десертный бокс", "Другое"].map(
-                      (type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      )
-                    )}
+                    <option value="">
+                      {hasNoProductTypes
+                        ? "Нет типов изделий — добавьте рецепт"
+                        : "Выберите тип"}
+                    </option>
+                    {hasStaleDessertType && normalizedSelectedDessertType ? (
+                      <option value={normalizedSelectedDessertType}>
+                        {formatProductTypeLabel(normalizedSelectedDessertType)} (устар.)
+                      </option>
+                    ) : null}
+                    {productTypeOptions.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-1">
