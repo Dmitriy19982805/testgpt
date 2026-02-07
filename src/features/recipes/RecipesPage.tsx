@@ -6,7 +6,7 @@ import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
-import type { BaseUnit, Recipe, RecipeItem, RecipeSection } from "../../db/types";
+import { toBaseUnit, type BaseUnit, type Recipe, type RecipeItem, type RecipeSection } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
 import { CenterModal } from "../../components/common/CenterModal";
@@ -347,7 +347,7 @@ export function RecipesPage() {
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-1"><label className="text-xs text-slate-500">Тип секции</label><select value={section.type} onChange={(event) => updateSection(section.id, { type: event.target.value as "manual" | "linked" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"><option value="manual">Ручной состав</option><option value="linked">Базовый рецепт</option></select></div>
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Ед. выхода</label><select value={section.outputUnit} onChange={(event) => updateSection(section.id, { outputUnit: event.target.value as BaseUnit })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm">{UNIT_OPTIONS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
+                  <div className="space-y-1"><label className="text-xs text-slate-500">Ед. выхода</label><select value={section.outputUnit} onChange={(event) => updateSection(section.id, { outputUnit: toBaseUnit(event.target.value) ?? "g" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm">{UNIT_OPTIONS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
                 </div>
 
                 {section.type === "linked" ? (
