@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Customer, Ingredient, Order, Recipe, RecipeSection, Settings } from "./types";
+import { toBaseUnit, type Customer, type Ingredient, type Order, type Recipe, type RecipeSection, type Settings } from "./types";
 
 export class ConfectionerDB extends Dexie {
   customers!: Table<Customer, string>;
@@ -42,13 +42,13 @@ export class ConfectionerDB extends Dexie {
                   : 0;
             const rawUnit = typeof raw.unit === "string" ? raw.unit : "";
             const rawBaseUnit = typeof raw.baseUnit === "string" ? raw.baseUnit : "";
-            const baseUnit = ["g", "ml", "pcs"].includes(rawBaseUnit)
-              ? rawBaseUnit
-              : rawUnit === "мл" || rawUnit === "ml"
+            const baseUnit =
+              toBaseUnit(rawBaseUnit) ??
+              (rawUnit === "мл" || rawUnit === "ml"
                 ? "ml"
                 : rawUnit === "шт" || rawUnit === "pcs"
                   ? "pcs"
-                  : "g";
+                  : "g");
 
             return tx.table("ingredients").put({
               id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -77,7 +77,7 @@ export class ConfectionerDB extends Dexie {
                 const ingredientId = typeof item.ingredientId === "string" ? item.ingredientId : "";
                 const amount = typeof item.amount === "number" ? item.amount : typeof item.qty === "number" ? item.qty : 0;
                 const unitRaw = typeof item.unit === "string" ? item.unit : "g";
-                const unit = ["g", "ml", "pcs"].includes(unitRaw) ? unitRaw : "g";
+                const unit = toBaseUnit(unitRaw) ?? "g";
                 if (!ingredientId || amount <= 0) {
                   return null;
                 }
@@ -87,7 +87,7 @@ export class ConfectionerDB extends Dexie {
               .filter(Boolean);
 
             const rawYieldUnit = typeof raw.yieldUnit === "string" ? raw.yieldUnit : "";
-            const yieldUnit = ["g", "ml", "pcs"].includes(rawYieldUnit) ? rawYieldUnit : "g";
+            const yieldUnit = toBaseUnit(rawYieldUnit) ?? "g";
 
             return tx.table("recipes").put({
               id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -136,7 +136,7 @@ export class ConfectionerDB extends Dexie {
               const ingredientId = typeof item.ingredientId === "string" ? item.ingredientId : "";
               const amount = typeof item.amount === "number" ? item.amount : 0;
               const unitRaw = typeof item.unit === "string" ? item.unit : "g";
-              const unit = ["g", "ml", "pcs"].includes(unitRaw) ? unitRaw : "g";
+              const unit = toBaseUnit(unitRaw) ?? "g";
               if (!ingredientId || amount <= 0) {
                 return null;
               }
@@ -160,7 +160,7 @@ export class ConfectionerDB extends Dexie {
                 return null;
               }
               const outputUnitRaw = typeof section.outputUnit === "string" ? section.outputUnit : undefined;
-              const outputUnit = outputUnitRaw && ["g", "ml", "pcs"].includes(outputUnitRaw) ? outputUnitRaw : undefined;
+              const outputUnit = toBaseUnit(outputUnitRaw);
 
               return {
                 id,
@@ -186,7 +186,7 @@ export class ConfectionerDB extends Dexie {
                       name: "Основной состав",
                       notes: "",
                       outputAmount: typeof raw.yieldAmount === "number" && raw.yieldAmount > 0 ? raw.yieldAmount : undefined,
-                      outputUnit: typeof raw.yieldUnit === "string" && ["g", "ml", "pcs"].includes(raw.yieldUnit) ? raw.yieldUnit : undefined,
+                      outputUnit: typeof raw.yieldUnit === "string" ? toBaseUnit(raw.yieldUnit) : undefined,
                       usageAmount: undefined,
                       items: fallbackItems as RecipeSection["items"],
                     },

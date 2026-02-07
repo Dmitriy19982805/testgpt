@@ -1,6 +1,15 @@
 export type PickupOrDelivery = "pickup" | "delivery";
 export type BaseUnit = "g" | "ml" | "pcs";
 
+export const BASE_UNITS: BaseUnit[] = ["g", "ml", "pcs"];
+
+export function toBaseUnit(value?: string): BaseUnit | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return BASE_UNITS.find((unit) => unit === value);
+}
+
 export interface Customer {
   id: string;
   name: string;

@@ -6,27 +6,30 @@ export const UNIT_OPTIONS: Array<{ label: string; value: BaseUnit }> = [
   { label: "шт", value: "pcs" },
 ];
 
-export function getUnitLabel(unit: BaseUnit) {
+export function getUnitLabel(unit: BaseUnit): string {
   return UNIT_OPTIONS.find((item) => item.value === unit)?.label ?? unit;
 }
 
-export function getIngredientUnitPrice(ingredient: Ingredient) {
+export function getIngredientUnitPrice(ingredient: Ingredient): number {
   if (ingredient.packSize <= 0) {
     return 0;
   }
-  return ingredient.packPrice / ingredient.packSize;
+  const unitPrice = ingredient.packPrice / ingredient.packSize;
+  return Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 0;
 }
 
-export function getRecipeItemCost(item: RecipeItem, ingredient?: Ingredient) {
+export function getRecipeItemCost(item: RecipeItem, ingredient?: Ingredient): number {
   if (!ingredient || ingredient.packSize <= 0) {
     return 0;
   }
   const unitPrice = getIngredientUnitPrice(ingredient);
+  const safeAmount = Number.isFinite(item.amount) && item.amount > 0 ? item.amount : 0;
   const lossFactor = 1 + (ingredient.lossPct ?? 0) / 100;
-  return item.amount * unitPrice * lossFactor;
+  const cost = safeAmount * unitPrice * lossFactor;
+  return Number.isFinite(cost) && cost > 0 ? cost : 0;
 }
 
-function normalizeSection(section: RecipeSection) {
+function normalizeSection(section: RecipeSection): RecipeSection {
   return {
     ...section,
     items: section.items ?? [],
@@ -35,7 +38,7 @@ function normalizeSection(section: RecipeSection) {
   };
 }
 
-export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]) {
+export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]): number {
   const normalized = normalizeSection(section);
   if (normalized.linkedRecipeId) {
     const linkedRecipe = recipes.find((recipe) => recipe.id === normalized.linkedRecipeId);
@@ -45,13 +48,16 @@ export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredie
     return getRecipeCosts(linkedRecipe, ingredients, recipes).recipeTotalCost;
   }
 
-  return normalized.items.reduce((sum, item) => {
+  const total = normalized.items.reduce((sum, item) => {
     const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
-    return sum + getRecipeItemCost(item, ingredient);
+    const itemCost = getRecipeItemCost(item, ingredient);
+    return sum + (Number.isFinite(itemCost) ? itemCost : 0);
   }, 0);
+
+  return Number.isFinite(total) ? total : 0;
 }
 
-export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]) {
+export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]): number {
   const baseCost = getSectionBaseCost(section, ingredients, recipes);
   const hasOutput = typeof section.outputAmount === "number" && section.outputAmount > 0;
   const hasUsage = typeof section.usageAmount === "number" && section.usageAmount > 0;
@@ -60,18 +66,25 @@ export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ing
     return baseCost;
   }
 
-  const usageRatio = Math.min(section.usageAmount! / section.outputAmount!, 1);
-  return baseCost * usageRatio;
+  const ratio = section.usageAmount! / section.outputAmount!;
+  const usageRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(ratio, 1)) : 0;
+  const effectiveCost = baseCost * usageRatio;
+  return Number.isFinite(effectiveCost) ? effectiveCost : 0;
 }
 
-export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[], recipes: Recipe[]) {
-  const total = recipe.sections.reduce((sum, section) => sum + getSectionEffectiveCost(section, ingredients, recipes), 0);
+export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[], recipes: Recipe[]): { recipeTotalCost: number; costPerYieldUnit: number } {
+  const total = recipe.sections.reduce((sum, section) => {
+    const sectionCost = getSectionEffectiveCost(section, ingredients, recipes);
+    return sum + (Number.isFinite(sectionCost) ? sectionCost : 0);
+  }, 0);
+  const safeTotal = Number.isFinite(total) ? total : 0;
   const outputSection = recipe.sections.find((section) => typeof section.outputAmount === "number" && section.outputAmount > 0);
-  const costPerUnit = outputSection?.outputAmount ? total / outputSection.outputAmount : 0;
+  const outputAmount = outputSection?.outputAmount ?? 0;
+  const costPerUnit = outputAmount > 0 ? safeTotal / outputAmount : 0;
 
   return {
-    recipeTotalCost: total,
-    costPerYieldUnit: costPerUnit,
+    recipeTotalCost: safeTotal,
+    costPerYieldUnit: Number.isFinite(costPerUnit) ? costPerUnit : 0,
   };
 }
 
@@ -134,7 +147,7 @@ export function parseRecipeFromText(text: string): ParsedPdfIngredientRow[] {
   return rows;
 }
 
-export function detectRecipeName(text: string) {
+export function detectRecipeName(text: string): string {
   const candidate = text
     .split(/\r?\n/)
     .map((line) => line.trim())

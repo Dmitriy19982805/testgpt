@@ -6,7 +6,7 @@ import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
-import type { BaseUnit, Ingredient } from "../../db/types";
+import { toBaseUnit, type BaseUnit, type Ingredient } from "../../db/types";
 import { formatCurrency, formatUnitCurrency } from "../../utils/currency";
 import { CenterModal } from "../../components/common/CenterModal";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
@@ -50,7 +50,7 @@ function validateIngredientForm(values: IngredientFormState) {
     parsed: {
       name: values.name.trim(),
       category: values.category.trim(),
-      baseUnit: (values.baseUnit || "g") as BaseUnit,
+      baseUnit: toBaseUnit(values.baseUnit) ?? "g",
       packSize: Number.isFinite(packSize) ? packSize : 0,
       packPrice: Number.isFinite(packPrice) ? packPrice : 0,
     },
@@ -188,7 +188,7 @@ export function IngredientsPage() {
         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Единица измерения</label>
         <select
           value={formState.baseUnit}
-          onChange={(event) => setField("baseUnit", event.target.value as BaseUnit)}
+          onChange={(event) => setField("baseUnit", toBaseUnit(event.target.value) ?? "")}
           onBlur={() => markFieldTouched("baseUnit")}
           className={`h-11 w-full rounded-2xl border bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:ring-2 dark:bg-slate-900/80 dark:text-slate-100 ${
             shouldShowError("baseUnit")
@@ -236,7 +236,7 @@ export function IngredientsPage() {
         />
         {shouldShowError("packPrice") ? <p className="text-xs text-rose-500">{validation.errors.packPrice}</p> : null}
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit as BaseUnit) : "—"}
+          Цена за единицу: {computedUnitPrice} / {formState.baseUnit ? getUnitLabel(formState.baseUnit) : "—"}
         </p>
       </div>
 
