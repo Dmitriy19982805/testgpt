@@ -426,14 +426,15 @@ export function RecipesPage() {
             <section className="space-y-3">
               {viewingRecipe.sections.map((section) => {
                 const sectionCost = getSectionEffectiveCost(section, ingredients);
+                const notes = (section.notes ?? "").trim();
                 return (
                   <article key={section.id} className="space-y-3 rounded-2xl border border-slate-200/70 bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">{section.name}</h3>
                       <p className="text-sm font-medium text-slate-800">{formatRecipePrice(sectionCost)}</p>
                     </div>
-                    {section.notes.trim() ? (
-                      <p className="whitespace-pre-line text-xs text-slate-500">{section.notes.trim()}</p>
+                    {notes ? (
+                      <p className="whitespace-pre-line text-xs text-slate-500">{notes}</p>
                     ) : null}
                     <ul className="space-y-2 text-sm text-slate-700">
                       {section.items.map((item, itemIndex) => {
