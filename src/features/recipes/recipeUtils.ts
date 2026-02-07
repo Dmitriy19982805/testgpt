@@ -11,10 +11,12 @@ export function getUnitLabel(unit: BaseUnit): string {
 }
 
 export function getIngredientUnitPrice(ingredient: Ingredient): number {
-  if (ingredient.packSize <= 0) {
+  const packSize = Number(ingredient.packSize);
+  const packPrice = Number(ingredient.packPrice);
+  if (!Number.isFinite(packSize) || packSize <= 0 || !Number.isFinite(packPrice) || packPrice <= 0) {
     return 0;
   }
-  const unitPrice = ingredient.packPrice / ingredient.packSize;
+  const unitPrice = packPrice / packSize;
   return Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 0;
 }
 
