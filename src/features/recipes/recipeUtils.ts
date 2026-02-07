@@ -1,4 +1,4 @@
-import type { BaseUnit, Ingredient, Recipe, RecipeItem } from "../../db/types";
+import type { BaseUnit, Ingredient, Recipe, RecipeItem, RecipeSection } from "../../db/types";
 
 export const UNIT_OPTIONS: Array<{ label: string; value: BaseUnit }> = [
   { label: "г", value: "g" },
@@ -26,14 +26,52 @@ export function getRecipeItemCost(item: RecipeItem, ingredient?: Ingredient) {
   return item.amount * unitPrice * lossFactor;
 }
 
-export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[]) {
-  const total = recipe.items.reduce((sum, item) => {
+function normalizeSection(section: RecipeSection) {
+  return {
+    ...section,
+    items: section.items ?? [],
+    outputAmount: typeof section.outputAmount === "number" && section.outputAmount > 0 ? section.outputAmount : undefined,
+    usageAmount: typeof section.usageAmount === "number" && section.usageAmount > 0 ? section.usageAmount : undefined,
+  };
+}
+
+export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]) {
+  const normalized = normalizeSection(section);
+  if (normalized.linkedRecipeId) {
+    const linkedRecipe = recipes.find((recipe) => recipe.id === normalized.linkedRecipeId);
+    if (!linkedRecipe) {
+      return 0;
+    }
+    return getRecipeCosts(linkedRecipe, ingredients, recipes).recipeTotalCost;
+  }
+
+  return normalized.items.reduce((sum, item) => {
     const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
     return sum + getRecipeItemCost(item, ingredient);
   }, 0);
+}
+
+export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]) {
+  const baseCost = getSectionBaseCost(section, ingredients, recipes);
+  const hasOutput = typeof section.outputAmount === "number" && section.outputAmount > 0;
+  const hasUsage = typeof section.usageAmount === "number" && section.usageAmount > 0;
+
+  if (!hasOutput || !hasUsage) {
+    return baseCost;
+  }
+
+  const usageRatio = Math.min(section.usageAmount! / section.outputAmount!, 1);
+  return baseCost * usageRatio;
+}
+
+export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[], recipes: Recipe[]) {
+  const total = recipe.sections.reduce((sum, section) => sum + getSectionEffectiveCost(section, ingredients, recipes), 0);
+  const outputSection = recipe.sections.find((section) => typeof section.outputAmount === "number" && section.outputAmount > 0);
+  const costPerUnit = outputSection?.outputAmount ? total / outputSection.outputAmount : 0;
+
   return {
     recipeTotalCost: total,
-    costPerYieldUnit: recipe.yieldAmount > 0 ? total / recipe.yieldAmount : 0,
+    costPerYieldUnit: costPerUnit,
   };
 }
 
