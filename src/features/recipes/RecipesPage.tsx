@@ -603,11 +603,11 @@ export function RecipesPage() {
           <div className="space-y-1.5"><label className="text-sm font-medium text-slate-700">Общие заметки</label><Input value={formState.notes} onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Опционально" /></div>
         </section>
 
-        <section className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
-          <h3 className="text-sm font-semibold uppercase text-slate-500">Recipe Result</h3>
+        <section className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4">
+          <h3 className="text-sm font-semibold uppercase text-slate-500">Результат рецепта *</h3>
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-1">
-              <label className="text-xs text-slate-500">Тип результата</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Тип результата</label>
               <select
                 value={formState.resultType}
                 onChange={(event) => {
@@ -622,12 +622,12 @@ export function RecipesPage() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-500">Значение</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Значение</label>
               <Input type="number" min="0.01" step="0.01" value={formState.resultValue} onChange={(event) => setFormState((prev) => ({ ...prev, resultValue: event.target.value }))} />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-500">Ед. результата</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Ед. результата</label>
               <select
                 value={formState.resultUnit}
                 onChange={(event) => setFormState((prev) => ({ ...prev, resultUnit: event.target.value as RecipeResultUnit }))}
