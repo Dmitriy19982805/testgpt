@@ -284,30 +284,35 @@ export function IngredientsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ингредиенты" description="Справочник сырья с точной ценой за единицу." />
+      <PageHeader
+        title="Ингредиенты"
+        description="Справочник сырья с точной ценой за единицу."
+        action={
+          <div className="w-full sm:w-auto">
+            <Button
+              onClick={() => {
+                setCreateFormOpen((prev) => !prev);
+                setFormSubmitted(false);
+              }}
+              className="w-full sm:min-w-52"
+            >
+              <Plus className="mr-2" size={16} />
+              Добавить ингредиент
+            </Button>
+          </div>
+        }
+      />
 
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => {
-              setCreateFormOpen((prev) => !prev);
-              setFormSubmitted(false);
-            }}
-            className="min-w-52"
-          >
-            <Plus className="mr-2" size={16} />
-            Добавить ингредиент
-          </Button>
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-medium text-emerald-700 transition-all dark:bg-emerald-500/20 dark:text-emerald-200 ${
-              showSavedHint ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
-            }`}
-            role="status"
-            aria-live="polite"
-          >
-            <Check size={14} />
-            Ингредиент сохранён
-          </div>
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-medium text-emerald-700 transition-all dark:bg-emerald-500/20 dark:text-emerald-200 ${
+            showSavedHint ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <Check size={14} />
+          Ингредиент сохранён
         </div>
 
         <div
