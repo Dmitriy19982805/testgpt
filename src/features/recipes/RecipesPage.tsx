@@ -49,8 +49,6 @@ const initialRecipeForm: RecipeFormState = {
   sections: [],
 };
 
-const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
-
 const SECTION_OUTPUT_UNITS: BaseUnit[] = ["g", "ml"];
 
 const createDraftItem = (): EditableRecipeItem => ({ id: crypto.randomUUID(), ingredientId: "", ingredientQuery: "", quantity: "" });
@@ -100,6 +98,7 @@ export function RecipesPage() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const formatRecipePrice = (value: number) => formatCurrency(value, settings?.currency ?? "RUB", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const updateSection = (sectionId: string, patch: Partial<EditableSection>) => {
     setFormState((prev) => ({ ...prev, sections: prev.sections.map((section) => (section.id === sectionId ? { ...section, ...patch } : section)) }));
@@ -144,7 +143,7 @@ export function RecipesPage() {
           if (!ingredient || !Number.isFinite(amount) || amount <= 0) {
             return null;
           }
-          return { ingredientId: ingredient.id, amount, unit: ingredient.baseUnit, rowCost: roundMoney(getIngredientUnitPrice(ingredient) * amount) };
+          return { ingredientId: ingredient.id, amount, unit: ingredient.baseUnit, rowCost: getIngredientUnitPrice(ingredient) * amount };
         })
         .filter(Boolean) as RecipeItem[];
 
@@ -300,10 +299,10 @@ export function RecipesPage() {
 
                 <div className="space-y-1 text-sm text-slate-600">
                   {recipe.sections.map((section) => (
-                    <p key={section.id}>{section.name}: {formatCurrency(roundMoney(getSectionEffectiveCost(section, ingredients)), settings?.currency ?? "RUB")}</p>
+                    <p key={section.id}>{section.name}: {formatRecipePrice(getSectionEffectiveCost(section, ingredients))}</p>
                   ))}
-                  <p className="font-medium">Итого: {formatCurrency(roundMoney(totals.recipeTotalCost), settings?.currency ?? "RUB")}</p>
-                  {totals.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatCurrency(roundMoney(totals.costPerYieldUnit), settings?.currency ?? "RUB")}</p> : null}
+                  <p className="font-medium">Итого: {formatRecipePrice(totals.recipeTotalCost)}</p>
+                  {totals.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatRecipePrice(totals.costPerYieldUnit)}</p> : null}
                 </div>
               </GlassCard>
             );
@@ -371,7 +370,7 @@ export function RecipesPage() {
                           />
                           <div className="space-y-1"><label className="text-xs text-slate-500">Количество</label><Input type="number" min="0.01" step="0.01" value={item.quantity} onChange={(event) => updateSectionItem(section.id, item.id, { quantity: event.target.value })} /></div>
                           <div className="h-11 rounded-xl border border-slate-200/70 bg-slate-50 px-3 text-sm flex items-center">{selectedIngredient ? getUnitLabel(selectedIngredient.baseUnit) : "—"}</div>
-                          <div className="h-11 rounded-xl border border-slate-200/70 bg-slate-50 px-3 text-sm flex items-center justify-end text-slate-700">{formatCurrency(roundMoney(ingredientCost), settings?.currency ?? "RUB")}</div>
+                          <div className="h-11 rounded-xl border border-slate-200/70 bg-slate-50 px-3 text-sm flex items-center justify-end text-slate-700">{formatRecipePrice(ingredientCost)}</div>
                           <Button type="button" variant="ghost" size="sm" onClick={() => updateSection(section.id, { items: section.items.filter((entry) => entry.id !== item.id) })}><Trash2 size={15} /></Button>
                         </div>
                       );
@@ -380,7 +379,7 @@ export function RecipesPage() {
                   </div>
 
                 <div className="space-y-1"><label className="text-xs text-slate-500">Описание / заметки</label><textarea value={section.notes} onChange={(event) => updateSection(section.id, { notes: event.target.value })} className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm" /></div>
-                <p className="text-sm text-slate-600">Себестоимость секции: {formatCurrency(roundMoney(sectionCost), settings?.currency ?? "RUB")}</p>
+                <p className="text-sm text-slate-600">Себестоимость секции: {formatRecipePrice(sectionCost)}</p>
               </div>
             );
           })}
@@ -389,7 +388,7 @@ export function RecipesPage() {
         <section className="space-y-3"><h3 className="text-sm font-semibold uppercase text-slate-500">Файл (опционально)</h3><input ref={fileInputRef} type="file" accept="application/pdf" onChange={(event) => void handleFileUpload(event)} className="hidden" /><Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2" size={14} />Загрузить PDF</Button>{formState.fileName ? <p className="text-sm text-slate-600">{formState.fileName}</p> : null}</section>
 
         {formSubmitted && validation.errors.length > 0 ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">{validation.errors.map((error) => <p key={error}>{error}</p>)}</div> : null}
-        <div className="rounded-2xl bg-slate-100/80 p-4 text-sm"><p>Итого себестоимость: {formatCurrency(roundMoney(draftRecipeCosts.recipeTotalCost), settings?.currency ?? "RUB")}</p>{draftRecipeCosts.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatCurrency(roundMoney(draftRecipeCosts.costPerYieldUnit), settings?.currency ?? "RUB")}</p> : null}</div>
+        <div className="rounded-2xl bg-slate-100/80 p-4 text-sm"><p>Итого себестоимость: {formatRecipePrice(draftRecipeCosts.recipeTotalCost)}</p>{draftRecipeCosts.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatRecipePrice(draftRecipeCosts.costPerYieldUnit)}</p> : null}</div>
       </CenterModal>
 
       <ConfirmModal
