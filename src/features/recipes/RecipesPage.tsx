@@ -615,7 +615,7 @@ export function RecipesPage() {
                   const nextUnit = RECIPE_RESULT_UNIT_OPTIONS[nextType][0]?.value ?? "g";
                   setFormState((prev) => ({ ...prev, resultType: nextType, resultUnit: nextUnit }));
                 }}
-                className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"
+                className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
               >
                 {RECIPE_RESULT_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -624,14 +624,21 @@ export function RecipesPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Значение</label>
-              <Input type="number" min="0.01" step="0.01" value={formState.resultValue} onChange={(event) => setFormState((prev) => ({ ...prev, resultValue: event.target.value }))} />
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={formState.resultValue}
+                onChange={(event) => setFormState((prev) => ({ ...prev, resultValue: event.target.value }))}
+                className="bg-white"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Ед. результата</label>
               <select
                 value={formState.resultUnit}
                 onChange={(event) => setFormState((prev) => ({ ...prev, resultUnit: event.target.value as RecipeResultUnit }))}
-                className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"
+                className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
               >
                 {RECIPE_RESULT_UNIT_OPTIONS[formState.resultType].map((unit) => (
                   <option key={unit.value} value={unit.value}>{unit.label}</option>
