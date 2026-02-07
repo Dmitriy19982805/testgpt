@@ -14,6 +14,7 @@ import { resolveDueTime, toDueAtIso } from "../../utils/date";
 import { NewCustomerModal } from "../customers/NewCustomerModal";
 import {
   formatProductTypeLabel,
+  getProductTypeKey,
   getProductTypesFromRecipes,
   normalizeProductType,
 } from "../recipes/recipeUtils";
@@ -323,11 +324,27 @@ export function OrderFormContent({
     () => normalizeProductType(dessertType),
     [dessertType]
   );
+  const selectedDessertTypeKey = useMemo(
+    () => getProductTypeKey(normalizedSelectedDessertType),
+    [normalizedSelectedDessertType]
+  );
+  const filteredRecipes = useMemo(() => {
+    if (!selectedDessertTypeKey) {
+      return [];
+    }
+
+    return recipes
+      .filter((recipe) => getProductTypeKey(recipe.category) === selectedDessertTypeKey)
+      .sort((left, right) => left.name.localeCompare(right.name, "ru-RU", { sensitivity: "base" }));
+  }, [recipes, selectedDessertTypeKey]);
   const hasNoProductTypes = productTypeOptions.length === 0;
   const hasStaleDessertType = Boolean(
     normalizedSelectedDessertType &&
-      !productTypeOptions.some((option) => option.value === normalizedSelectedDessertType)
+      !productTypeOptions.some(
+        (option) => getProductTypeKey(option.value) === selectedDessertTypeKey
+      )
   );
+  const isRecipeSelectionDisabled = hasNoProductTypes || !selectedDessertTypeKey;
   const dessertSizePlaceholder = useMemo(() => {
     switch (dessertType) {
       case "Торт":
@@ -358,6 +375,20 @@ export function OrderFormContent({
       setValue("dessertType", normalizedSelectedDessertType, { shouldValidate: false });
     }
   }, [dessertType, normalizedSelectedDessertType, setValue]);
+
+  useEffect(() => {
+    if (!recipeId) {
+      return;
+    }
+
+    const recipeMatchesDessertType = recipes.some(
+      (recipe) => recipe.id === recipeId && getProductTypeKey(recipe.category) === selectedDessertTypeKey
+    );
+
+    if (!recipeMatchesDessertType) {
+      setValue("recipeId", "", { shouldValidate: true, shouldDirty: true });
+    }
+  }, [recipeId, recipes, selectedDessertTypeKey, setValue]);
 
   return (
     <form
@@ -518,16 +549,20 @@ export function OrderFormContent({
                 <div className="space-y-1">
                   <label className="text-xs text-slate-500">Рецепт</label>
                   <select
-                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm dark:border-slate-700/70 dark:bg-slate-900/80"
+                    className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/70 dark:bg-slate-900/80"
+                    disabled={isRecipeSelectionDisabled}
                     {...register("recipeId")}
                   >
                     <option value="">Без рецепта</option>
-                    {recipes.map((recipe) => (
+                    {filteredRecipes.map((recipe) => (
                       <option key={recipe.id} value={recipe.id}>
                         {recipe.name}
                       </option>
                     ))}
                   </select>
+                  {isRecipeSelectionDisabled ? (
+                    <p className="text-xs text-slate-500">Сначала выберите тип десерта</p>
+                  ) : null}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-slate-500">Вкус</label>
