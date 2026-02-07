@@ -156,7 +156,9 @@ export function IngredientsPage() {
   };
 
   const isUsedByRecipes = (ingredientId: string) =>
-    recipes.some((recipe) => recipe.items.some((item) => item.ingredientId === ingredientId));
+    recipes.some((recipe) =>
+      recipe.sections.some((section) => section.items.some((item) => item.ingredientId === ingredientId))
+    );
 
   const renderIngredientFields = () => (
     <div className="grid gap-6 md:grid-cols-2">

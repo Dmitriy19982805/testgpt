@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Customer, Ingredient, Order, Recipe, Settings } from "./types";
+import type { Customer, Ingredient, Order, Recipe, RecipeSection, Settings } from "./types";
 
 export class ConfectionerDB extends Dexie {
   customers!: Table<Customer, string>;
@@ -109,6 +109,102 @@ export class ConfectionerDB extends Dexie {
             });
           }),
         ]);
+      });
+
+    this.version(3)
+      .stores({
+        customers: "id, name, createdAt",
+        orders: "id, orderNo, status, createdAt, dueAt, customerId",
+        ingredients: "id, name, category, baseUnit, updatedAt",
+        recipes: "id, name, category, updatedAt",
+        settings: "id",
+      })
+      .upgrade(async (tx) => {
+        const recipes = (await tx.table("recipes").toArray()) as Array<Record<string, unknown>>;
+        const now = new Date().toISOString();
+
+        await Promise.all(
+          recipes.map((raw) => {
+            const existingSections = Array.isArray(raw.sections) ? raw.sections : [];
+            const legacyItems = Array.isArray(raw.items) ? raw.items : [];
+
+            const toItem = (entry: unknown) => {
+              if (!entry || typeof entry !== "object") {
+                return null;
+              }
+              const item = entry as Record<string, unknown>;
+              const ingredientId = typeof item.ingredientId === "string" ? item.ingredientId : "";
+              const amount = typeof item.amount === "number" ? item.amount : 0;
+              const unitRaw = typeof item.unit === "string" ? item.unit : "g";
+              const unit = ["g", "ml", "pcs"].includes(unitRaw) ? unitRaw : "g";
+              if (!ingredientId || amount <= 0) {
+                return null;
+              }
+              return {
+                ingredientId,
+                amount,
+                unit,
+                rowCost: typeof item.rowCost === "number" ? item.rowCost : undefined,
+              };
+            };
+
+            const normalizeSection = (entry: unknown): RecipeSection | null => {
+              if (!entry || typeof entry !== "object") {
+                return null;
+              }
+              const section = entry as Record<string, unknown>;
+              const id = typeof section.id === "string" && section.id ? section.id : crypto.randomUUID();
+              const name = typeof section.name === "string" ? section.name.trim() : "";
+              const items = Array.isArray(section.items) ? section.items.map(toItem).filter(Boolean) : [];
+              if (!name) {
+                return null;
+              }
+              const outputUnitRaw = typeof section.outputUnit === "string" ? section.outputUnit : undefined;
+              const outputUnit = outputUnitRaw && ["g", "ml", "pcs"].includes(outputUnitRaw) ? outputUnitRaw : undefined;
+
+              return {
+                id,
+                name,
+                notes: typeof section.notes === "string" ? section.notes : "",
+                outputAmount: typeof section.outputAmount === "number" && section.outputAmount > 0 ? section.outputAmount : undefined,
+                outputUnit,
+                usageAmount: typeof section.usageAmount === "number" && section.usageAmount > 0 ? section.usageAmount : undefined,
+                linkedRecipeId: typeof section.linkedRecipeId === "string" && section.linkedRecipeId ? section.linkedRecipeId : undefined,
+                items: items as RecipeSection["items"],
+              };
+            };
+
+            const normalizedSections = existingSections.map(normalizeSection).filter(Boolean) as RecipeSection[];
+            const fallbackItems = legacyItems.map(toItem).filter(Boolean);
+
+            const sections =
+              normalizedSections.length > 0
+                ? normalizedSections
+                : [
+                    {
+                      id: crypto.randomUUID(),
+                      name: "Основной состав",
+                      notes: "",
+                      outputAmount: typeof raw.yieldAmount === "number" && raw.yieldAmount > 0 ? raw.yieldAmount : undefined,
+                      outputUnit: typeof raw.yieldUnit === "string" && ["g", "ml", "pcs"].includes(raw.yieldUnit) ? raw.yieldUnit : undefined,
+                      usageAmount: undefined,
+                      items: fallbackItems as RecipeSection["items"],
+                    },
+                  ];
+
+            return tx.table("recipes").put({
+              id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
+              name: typeof raw.name === "string" ? raw.name : "",
+              category: typeof raw.category === "string" ? raw.category : "",
+              sections,
+              notes: typeof raw.notes === "string" ? raw.notes : "",
+              fileName: typeof raw.fileName === "string" ? raw.fileName : "",
+              fileUrl: typeof raw.fileUrl === "string" ? raw.fileUrl : "",
+              createdAt: typeof raw.createdAt === "string" ? raw.createdAt : now,
+              updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : now,
+            });
+          })
+        );
       });
   }
 }

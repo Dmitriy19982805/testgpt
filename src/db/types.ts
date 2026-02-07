@@ -115,13 +115,22 @@ export interface RecipeItem {
   rowCost?: number;
 }
 
+export interface RecipeSection {
+  id: string;
+  name: string;
+  notes?: string;
+  outputAmount?: number;
+  outputUnit?: BaseUnit;
+  usageAmount?: number;
+  items: RecipeItem[];
+  linkedRecipeId?: string;
+}
+
 export interface Recipe {
   id: string;
   name: string;
   category?: string;
-  yieldAmount: number;
-  yieldUnit: BaseUnit;
-  items: RecipeItem[];
+  sections: RecipeSection[];
   notes?: string;
   fileName?: string;
   fileUrl?: string;
