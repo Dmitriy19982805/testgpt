@@ -169,7 +169,6 @@ export class ConfectionerDB extends Dexie {
                 outputAmount: typeof section.outputAmount === "number" && section.outputAmount > 0 ? section.outputAmount : undefined,
                 outputUnit,
                 usageAmount: typeof section.usageAmount === "number" && section.usageAmount > 0 ? section.usageAmount : undefined,
-                linkedRecipeId: typeof section.linkedRecipeId === "string" && section.linkedRecipeId ? section.linkedRecipeId : undefined,
                 items: items as RecipeSection["items"],
               };
             };
