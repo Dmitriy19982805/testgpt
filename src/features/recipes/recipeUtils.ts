@@ -164,6 +164,11 @@ export function normalizeProductType(value?: string): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+export function getProductTypeKey(value?: string): string | null {
+  const normalized = normalizeProductType(value);
+  return normalized ? normalized.toLocaleLowerCase("ru-RU") : null;
+}
+
 export function getProductTypesFromRecipes(recipes: Recipe[]): ProductTypeOption[] {
   const byKey = new Map<string, ProductTypeOption>();
 
@@ -172,7 +177,10 @@ export function getProductTypesFromRecipes(recipes: Recipe[]): ProductTypeOption
     if (!normalized) {
       return;
     }
-    const key = normalized.toLocaleLowerCase("ru-RU");
+    const key = getProductTypeKey(normalized);
+    if (!key) {
+      return;
+    }
     if (!byKey.has(key)) {
       byKey.set(key, {
         value: normalized,
