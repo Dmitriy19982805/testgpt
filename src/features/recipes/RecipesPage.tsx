@@ -1,5 +1,5 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Link2, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -28,8 +28,6 @@ interface EditableSection {
   outputAmount: string;
   outputUnit: BaseUnit;
   usageAmount: string;
-  type: "manual" | "linked";
-  linkedRecipeId: string;
   items: EditableRecipeItem[];
 }
 
@@ -53,6 +51,8 @@ const initialRecipeForm: RecipeFormState = {
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+const SECTION_OUTPUT_UNITS: BaseUnit[] = ["g", "ml"];
+
 const createDraftItem = (): EditableRecipeItem => ({ id: crypto.randomUUID(), ingredientId: "", ingredientQuery: "", quantity: "" });
 
 const createDraftSection = (): EditableSection => ({
@@ -62,8 +62,6 @@ const createDraftSection = (): EditableSection => ({
   outputAmount: "",
   outputUnit: "g",
   usageAmount: "",
-  type: "manual",
-  linkedRecipeId: "",
   items: [createDraftItem()],
 });
 
@@ -81,8 +79,6 @@ function toForm(recipe: Recipe): RecipeFormState {
       outputAmount: section.outputAmount ? String(section.outputAmount) : "",
       outputUnit: section.outputUnit ?? "g",
       usageAmount: section.usageAmount ? String(section.usageAmount) : "",
-      type: section.linkedRecipeId ? "linked" : "manual",
-      linkedRecipeId: section.linkedRecipeId ?? "",
       items: (section.items ?? []).map((item) => ({
         id: crypto.randomUUID(),
         ingredientId: item.ingredientId,
@@ -141,17 +137,6 @@ export function RecipesPage() {
       const outputAmount = Number(section.outputAmount);
       const usageAmount = Number(section.usageAmount);
 
-      if (section.type === "linked") {
-        if (!section.linkedRecipeId) {
-          errors.push(`Секция «${section.name}»: выберите базовый рецепт.`);
-          return;
-        }
-        if (editingRecipe && section.linkedRecipeId === editingRecipe.id) {
-          errors.push(`Секция «${section.name}»: нельзя ссылаться на текущий рецепт.`);
-          return;
-        }
-      }
-
       const items: RecipeItem[] = section.items
         .map((item) => {
           const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
@@ -163,7 +148,7 @@ export function RecipesPage() {
         })
         .filter(Boolean) as RecipeItem[];
 
-      if (section.type === "manual" && items.length === 0) {
+      if (items.length === 0) {
         errors.push(`Секция «${section.name}»: добавьте минимум один ингредиент.`);
         return;
       }
@@ -175,8 +160,7 @@ export function RecipesPage() {
         outputAmount: Number.isFinite(outputAmount) && outputAmount > 0 ? outputAmount : undefined,
         outputUnit: Number.isFinite(outputAmount) && outputAmount > 0 ? section.outputUnit : undefined,
         usageAmount: Number.isFinite(usageAmount) && usageAmount > 0 ? usageAmount : undefined,
-        items: section.type === "manual" ? items : [],
-        linkedRecipeId: section.type === "linked" ? section.linkedRecipeId : undefined,
+        items,
       });
     });
 
@@ -192,7 +176,7 @@ export function RecipesPage() {
         sections: parsedSections,
       },
     };
-  }, [editingRecipe, formState, ingredients]);
+  }, [formState, ingredients]);
 
   const draftRecipeCosts = useMemo(
     () =>
@@ -203,10 +187,9 @@ export function RecipesPage() {
           updatedAt: "",
           ...validation.parsed,
         },
-        ingredients,
-        recipes
+        ingredients
       ),
-    [ingredients, recipes, validation.parsed]
+    [ingredients, validation.parsed]
   );
 
   const resetForm = () => {
@@ -272,7 +255,7 @@ export function RecipesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {recipes.map((recipe) => {
-            const totals = getRecipeCosts(recipe, ingredients, recipes);
+            const totals = getRecipeCosts(recipe, ingredients);
             return (
               <GlassCard key={recipe.id} className="space-y-3 rounded-2xl border border-white/50 bg-white p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -301,7 +284,7 @@ export function RecipesPage() {
 
                 <div className="space-y-1 text-sm text-slate-600">
                   {recipe.sections.map((section) => (
-                    <p key={section.id}>{section.name}: {formatCurrency(roundMoney(getSectionEffectiveCost(section, ingredients, recipes)), settings?.currency ?? "RUB")}</p>
+                    <p key={section.id}>{section.name}: {formatCurrency(roundMoney(getSectionEffectiveCost(section, ingredients)), settings?.currency ?? "RUB")}</p>
                   ))}
                   <p className="font-medium">Итого: {formatCurrency(roundMoney(totals.recipeTotalCost), settings?.currency ?? "RUB")}</p>
                   {totals.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatCurrency(roundMoney(totals.costPerYieldUnit), settings?.currency ?? "RUB")}</p> : null}
@@ -329,9 +312,8 @@ export function RecipesPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between"><h3 className="text-sm font-semibold uppercase text-slate-500">Секции рецепта</h3><Button type="button" variant="outline" onClick={() => setFormState((prev) => ({ ...prev, sections: [...prev.sections, createDraftSection()] }))}><Plus className="mr-2" size={14} />Добавить секцию</Button></div>
           {formState.sections.map((section, sectionIndex) => {
-            const linkedOptions = recipes.filter((recipe) => recipe.id !== editingRecipe?.id);
             const parsedSection = validation.parsed.sections.find((entry) => entry.id === section.id);
-            const sectionCost = parsedSection ? getSectionEffectiveCost(parsedSection, ingredients, recipes) : 0;
+            const sectionCost = parsedSection ? getSectionEffectiveCost(parsedSection, ingredients) : 0;
             return (
               <div key={section.id} className="space-y-3 rounded-2xl border border-slate-200/80 p-4">
                 <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
@@ -345,18 +327,9 @@ export function RecipesPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Тип секции</label><select value={section.type} onChange={(event) => updateSection(section.id, { type: event.target.value as "manual" | "linked" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"><option value="manual">Ручной состав</option><option value="linked">Базовый рецепт</option></select></div>
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Ед. выхода</label><select value={section.outputUnit} onChange={(event) => updateSection(section.id, { outputUnit: toBaseUnit(event.target.value) ?? "g" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm">{UNIT_OPTIONS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
-                </div>
+                <div className="space-y-1 max-w-[220px]"><label className="text-xs text-slate-500">Ед. выхода</label><select value={section.outputUnit} onChange={(event) => updateSection(section.id, { outputUnit: toBaseUnit(event.target.value) ?? "g" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm">{UNIT_OPTIONS.filter((unit) => SECTION_OUTPUT_UNITS.includes(unit.value)).map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
 
-                {section.type === "linked" ? (
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-500">Базовый рецепт</label>
-                    <div className="flex items-center gap-2"><Link2 size={14} className="text-slate-500" /><select value={section.linkedRecipeId} onChange={(event) => updateSection(section.id, { linkedRecipeId: event.target.value })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"><option value="">Выберите рецепт</option>{linkedOptions.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select></div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
+                <div className="space-y-3">
                     {section.items.map((item) => {
                       const selectedIngredient = ingredients.find((entry) => entry.id === item.ingredientId);
                       return (
@@ -386,7 +359,6 @@ export function RecipesPage() {
                     })}
                     <Button type="button" variant="outline" onClick={() => updateSection(section.id, { items: [...section.items, createDraftItem()] })}><Plus className="mr-2" size={14} />Добавить ингредиент</Button>
                   </div>
-                )}
 
                 <div className="space-y-1"><label className="text-xs text-slate-500">Описание / заметки</label><textarea value={section.notes} onChange={(event) => updateSection(section.id, { notes: event.target.value })} className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm" /></div>
                 <p className="text-sm text-slate-600">Себестоимость секции: {formatCurrency(roundMoney(sectionCost), settings?.currency ?? "RUB")}</p>

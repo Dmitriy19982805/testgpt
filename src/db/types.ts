@@ -132,7 +132,6 @@ export interface RecipeSection {
   outputUnit?: BaseUnit;
   usageAmount?: number;
   items: RecipeItem[];
-  linkedRecipeId?: string;
 }
 
 export interface Recipe {

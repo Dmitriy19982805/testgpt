@@ -38,15 +38,8 @@ function normalizeSection(section: RecipeSection): RecipeSection {
   };
 }
 
-export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]): number {
+export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredient[]): number {
   const normalized = normalizeSection(section);
-  if (normalized.linkedRecipeId) {
-    const linkedRecipe = recipes.find((recipe) => recipe.id === normalized.linkedRecipeId);
-    if (!linkedRecipe) {
-      return 0;
-    }
-    return getRecipeCosts(linkedRecipe, ingredients, recipes).recipeTotalCost;
-  }
 
   const total = normalized.items.reduce((sum, item) => {
     const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
@@ -57,8 +50,8 @@ export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredie
   return Number.isFinite(total) ? total : 0;
 }
 
-export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[], recipes: Recipe[]): number {
-  const baseCost = getSectionBaseCost(section, ingredients, recipes);
+export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[]): number {
+  const baseCost = getSectionBaseCost(section, ingredients);
   const hasOutput = typeof section.outputAmount === "number" && section.outputAmount > 0;
   const hasUsage = typeof section.usageAmount === "number" && section.usageAmount > 0;
 
@@ -72,9 +65,9 @@ export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ing
   return Number.isFinite(effectiveCost) ? effectiveCost : 0;
 }
 
-export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[], recipes: Recipe[]): { recipeTotalCost: number; costPerYieldUnit: number } {
+export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[]): { recipeTotalCost: number; costPerYieldUnit: number } {
   const total = recipe.sections.reduce((sum, section) => {
-    const sectionCost = getSectionEffectiveCost(section, ingredients, recipes);
+    const sectionCost = getSectionEffectiveCost(section, ingredients);
     return sum + (Number.isFinite(sectionCost) ? sectionCost : 0);
   }, 0);
   const safeTotal = Number.isFinite(total) ? total : 0;
