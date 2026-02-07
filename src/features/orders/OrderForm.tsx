@@ -325,7 +325,7 @@ export function OrderFormContent({
     [dessertType]
   );
   const selectedDessertTypeKey = useMemo(
-    () => getProductTypeKey(normalizedSelectedDessertType),
+    () => getProductTypeKey(normalizedSelectedDessertType ?? undefined),
     [normalizedSelectedDessertType]
   );
   const filteredRecipes = useMemo(() => {
