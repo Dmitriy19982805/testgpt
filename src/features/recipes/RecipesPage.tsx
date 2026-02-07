@@ -432,6 +432,9 @@ export function RecipesPage() {
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">{section.name}</h3>
                       <p className="text-sm font-medium text-slate-800">{formatRecipePrice(sectionCost)}</p>
                     </div>
+                    {section.notes.trim() ? (
+                      <p className="whitespace-pre-line text-xs text-slate-500">{section.notes.trim()}</p>
+                    ) : null}
                     <ul className="space-y-2 text-sm text-slate-700">
                       {section.items.map((item, itemIndex) => {
                         const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
