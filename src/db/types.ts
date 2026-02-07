@@ -128,10 +128,16 @@ export interface RecipeSection {
   id: string;
   name: string;
   notes?: string;
-  outputAmount?: number;
-  outputUnit?: BaseUnit;
-  usageAmount?: number;
   items: RecipeItem[];
+}
+
+export type RecipeResultType = "weight" | "quantity";
+export type RecipeResultUnit = "g" | "kg" | "pcs";
+
+export interface RecipeResult {
+  type: RecipeResultType;
+  value: number;
+  unit: RecipeResultUnit;
 }
 
 export interface Recipe {
@@ -139,6 +145,7 @@ export interface Recipe {
   name: string;
   category?: string;
   sections: RecipeSection[];
+  result: RecipeResult;
   notes?: string;
   fileName?: string;
   fileUrl?: string;

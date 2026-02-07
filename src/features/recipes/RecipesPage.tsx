@@ -6,12 +6,20 @@ import { GlassCard } from "../../components/common/GlassCard";
 import { PageHeader } from "../../components/common/PageHeader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useAppStore } from "../../store/useAppStore";
-import { toBaseUnit, type BaseUnit, type Recipe, type RecipeItem, type RecipeSection } from "../../db/types";
+import { type Recipe, type RecipeItem, type RecipeResultType, type RecipeResultUnit, type RecipeSection } from "../../db/types";
 import { formatCurrency } from "../../utils/currency";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
 import { CenterModal } from "../../components/common/CenterModal";
 import { ActionMenu } from "../../components/common/ActionMenu";
-import { getIngredientUnitPrice, getRecipeCosts, getSectionEffectiveCost, getUnitLabel, UNIT_OPTIONS } from "./recipeUtils";
+import {
+  formatRecipeResult,
+  getIngredientUnitPrice,
+  getRecipeCosts,
+  getSectionEffectiveCost,
+  getUnitLabel,
+  RECIPE_RESULT_TYPE_OPTIONS,
+  RECIPE_RESULT_UNIT_OPTIONS,
+} from "./recipeUtils";
 import { IngredientSelect } from "./IngredientSelect";
 
 interface EditableRecipeItem {
@@ -25,9 +33,6 @@ interface EditableSection {
   id: string;
   name: string;
   notes: string;
-  outputAmount: string;
-  outputUnit: BaseUnit;
-  usageAmount: string;
   items: EditableRecipeItem[];
 }
 
@@ -37,6 +42,9 @@ interface RecipeFormState {
   notes: string;
   fileName: string;
   fileUrl: string;
+  resultType: RecipeResultType;
+  resultValue: string;
+  resultUnit: RecipeResultUnit;
   sections: EditableSection[];
 }
 
@@ -46,10 +54,11 @@ const initialRecipeForm: RecipeFormState = {
   notes: "",
   fileName: "",
   fileUrl: "",
+  resultType: "weight",
+  resultValue: "",
+  resultUnit: "g",
   sections: [],
 };
-
-const SECTION_OUTPUT_UNITS: BaseUnit[] = ["g", "ml"];
 
 const createDraftItem = (): EditableRecipeItem => ({ id: crypto.randomUUID(), ingredientId: "", ingredientQuery: "", quantity: "" });
 
@@ -57,9 +66,6 @@ const createDraftSection = (): EditableSection => ({
   id: crypto.randomUUID(),
   name: "",
   notes: "",
-  outputAmount: "",
-  outputUnit: "g",
-  usageAmount: "",
   items: [createDraftItem()],
 });
 
@@ -70,13 +76,13 @@ function toForm(recipe: Recipe): RecipeFormState {
     notes: recipe.notes ?? "",
     fileName: recipe.fileName ?? "",
     fileUrl: recipe.fileUrl ?? "",
+    resultType: recipe.result.type,
+    resultValue: String(recipe.result.value),
+    resultUnit: recipe.result.unit,
     sections: recipe.sections.map((section) => ({
       id: section.id,
       name: section.name,
       notes: section.notes ?? "",
-      outputAmount: section.outputAmount ? String(section.outputAmount) : "",
-      outputUnit: section.outputUnit ?? "g",
-      usageAmount: section.usageAmount ? String(section.usageAmount) : "",
       items: (section.items ?? []).map((item) => ({
         id: crypto.randomUUID(),
         ingredientId: item.ingredientId,
@@ -133,14 +139,16 @@ export function RecipesPage() {
       errors.push("Добавьте хотя бы одну секцию.");
     }
 
+    const resultValue = Number(formState.resultValue);
+    if (!Number.isFinite(resultValue) || resultValue <= 0) {
+      errors.push("Укажите корректный результат рецепта.");
+    }
+
     formState.sections.forEach((section, index) => {
       if (!section.name.trim()) {
         errors.push(`Секция #${index + 1}: укажите название.`);
         return;
       }
-
-      const outputAmount = Number(section.outputAmount);
-      const usageAmount = Number(section.usageAmount);
 
       const items: RecipeItem[] = section.items
         .map((item) => {
@@ -162,9 +170,6 @@ export function RecipesPage() {
         id: section.id,
         name: section.name.trim(),
         notes: section.notes.trim(),
-        outputAmount: Number.isFinite(outputAmount) && outputAmount > 0 ? outputAmount : undefined,
-        outputUnit: Number.isFinite(outputAmount) && outputAmount > 0 ? section.outputUnit : undefined,
-        usageAmount: Number.isFinite(usageAmount) && usageAmount > 0 ? usageAmount : undefined,
         items,
       });
     });
@@ -178,6 +183,11 @@ export function RecipesPage() {
         notes: formState.notes.trim(),
         fileName: formState.fileName,
         fileUrl: formState.fileUrl,
+        result: {
+          type: formState.resultType,
+          value: Number.isFinite(resultValue) && resultValue > 0 ? resultValue : 0,
+          unit: formState.resultUnit,
+        },
         sections: parsedSections,
       },
     };
@@ -199,19 +209,23 @@ export function RecipesPage() {
 
   const draftRecipeCosts = useMemo(() => {
     const recipeTotalCost = Object.values(sectionCosts).reduce((sum, sectionCost) => sum + sectionCost, 0);
-
-    const outputSection = formState.sections.find((section) => {
-      const outputAmount = Number(section.outputAmount);
-      return Number.isFinite(outputAmount) && outputAmount > 0;
-    });
-    const outputAmount = outputSection ? Number(outputSection.outputAmount) : 0;
-    const costPerYieldUnit = outputAmount > 0 ? recipeTotalCost / outputAmount : 0;
+    const resultValue = Number(formState.resultValue);
+    const resultBaseValue =
+      Number.isFinite(resultValue) && resultValue > 0
+        ? formState.resultType === "weight"
+          ? formState.resultUnit === "kg"
+            ? resultValue * 1000
+            : resultValue
+          : resultValue
+        : 0;
+    const costPerResultUnit = resultBaseValue > 0 ? recipeTotalCost / resultBaseValue : 0;
 
     return {
       recipeTotalCost: Number.isFinite(recipeTotalCost) ? recipeTotalCost : 0,
-      costPerYieldUnit: Number.isFinite(costPerYieldUnit) ? costPerYieldUnit : 0,
+      costPerResultUnit: Number.isFinite(costPerResultUnit) ? costPerResultUnit : 0,
+      resultUnitLabel: formState.resultType === "weight" ? "г" : "шт",
     };
-  }, [formState.sections, sectionCosts]);
+  }, [formState.resultType, formState.resultUnit, formState.resultValue, sectionCosts]);
 
   const resetForm = () => {
     setFormState(initialRecipeForm);
@@ -436,6 +450,7 @@ export function RecipesPage() {
                     <h3 className="text-lg font-semibold text-slate-900">{recipe.name}</h3>
                     <p className="text-sm text-slate-500">{recipe.category?.trim() || "Без категории"}</p>
                     <p className="text-sm text-slate-600">Секций: {recipe.sections.length}</p>
+                    <p className="text-sm text-slate-600">Результат: {formatRecipeResult(recipe.result)}</p>
                   </div>
                   <Button
                     variant="ghost"
@@ -473,7 +488,7 @@ export function RecipesPage() {
                     <p key={section.id}>{section.name}: {formatRecipePrice(getSectionEffectiveCost(section, ingredients))}</p>
                   ))}
                   <p className="font-medium">Итого: {formatRecipePrice(totals.recipeTotalCost)}</p>
-                  {totals.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatRecipePrice(totals.costPerYieldUnit)}</p> : null}
+                  {totals.costPerResultUnit > 0 ? <p>Себестоимость за 1 {totals.resultUnitLabel}: {formatRecipePrice(totals.costPerResultUnit)}</p> : null}
                 </div>
               </GlassCard>
             );
@@ -541,8 +556,12 @@ export function RecipesPage() {
               })}
             </section>
 
-            <section className="rounded-2xl bg-slate-100/80 p-4 text-sm font-medium text-slate-800">
-              Итого себестоимость: {formatRecipePrice(getRecipeCosts(viewingRecipe, ingredients).recipeTotalCost)}
+            <section className="rounded-2xl bg-slate-100/80 p-4 text-sm font-medium text-slate-800 space-y-1">
+              <p>Результат рецепта: {formatRecipeResult(viewingRecipe.result)}</p>
+              <p>Итого себестоимость: {formatRecipePrice(getRecipeCosts(viewingRecipe, ingredients).recipeTotalCost)}</p>
+              {getRecipeCosts(viewingRecipe, ingredients).costPerResultUnit > 0 ? (
+                <p>Себестоимость за 1 {getRecipeCosts(viewingRecipe, ingredients).resultUnitLabel}: {formatRecipePrice(getRecipeCosts(viewingRecipe, ingredients).costPerResultUnit)}</p>
+              ) : null}
             </section>
 
             <section className="space-y-3">
@@ -584,16 +603,52 @@ export function RecipesPage() {
           <div className="space-y-1.5"><label className="text-sm font-medium text-slate-700">Общие заметки</label><Input value={formState.notes} onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Опционально" /></div>
         </section>
 
+        <section className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
+          <h3 className="text-sm font-semibold uppercase text-slate-500">Recipe Result</h3>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Тип результата</label>
+              <select
+                value={formState.resultType}
+                onChange={(event) => {
+                  const nextType = event.target.value as RecipeResultType;
+                  const nextUnit = RECIPE_RESULT_UNIT_OPTIONS[nextType][0]?.value ?? "g";
+                  setFormState((prev) => ({ ...prev, resultType: nextType, resultUnit: nextUnit }));
+                }}
+                className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"
+              >
+                {RECIPE_RESULT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Значение</label>
+              <Input type="number" min="0.01" step="0.01" value={formState.resultValue} onChange={(event) => setFormState((prev) => ({ ...prev, resultValue: event.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Ед. результата</label>
+              <select
+                value={formState.resultUnit}
+                onChange={(event) => setFormState((prev) => ({ ...prev, resultUnit: event.target.value as RecipeResultUnit }))}
+                className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm"
+              >
+                {RECIPE_RESULT_UNIT_OPTIONS[formState.resultType].map((unit) => (
+                  <option key={unit.value} value={unit.value}>{unit.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+
         <section className="space-y-4">
           <div className="flex items-center justify-between"><h3 className="text-sm font-semibold uppercase text-slate-500">Секции рецепта</h3><Button type="button" variant="outline" onClick={addSection}><Plus className="mr-2" size={14} />Добавить секцию</Button></div>
           {formState.sections.map((section, sectionIndex) => {
             const sectionCost = sectionCosts[section.id] ?? 0;
             return (
               <div key={section.id} className="space-y-3 rounded-2xl border border-slate-200/80 p-4">
-                <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <div className="space-y-1"><label className="text-xs text-slate-500">Название секции</label><Input autoFocus={newSectionIdToFocus === section.id} value={section.name} onChange={(event) => updateSection(section.id, { name: event.target.value })} onFocus={() => { if (newSectionIdToFocus === section.id) { setNewSectionIdToFocus(null); } }} /></div>
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Выход (опц.)</label><Input type="number" min="0.01" step="0.01" value={section.outputAmount} onChange={(event) => updateSection(section.id, { outputAmount: event.target.value })} /></div>
-                  <div className="space-y-1"><label className="text-xs text-slate-500">Используем в финале (опц.)</label><Input type="number" min="0.01" step="0.01" value={section.usageAmount} onChange={(event) => updateSection(section.id, { usageAmount: event.target.value })} /></div>
                   <div className="flex gap-1">
                     <Button type="button" size="sm" variant="ghost" onClick={() => setFormState((prev) => ({ ...prev, sections: prev.sections.map((s, i, arr) => (i === sectionIndex && i > 0 ? arr[i - 1] : i === sectionIndex - 1 ? arr[i + 1] : s)) }))}><ArrowUp size={14} /></Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setFormState((prev) => ({ ...prev, sections: prev.sections.map((s, i, arr) => (i === sectionIndex && i < arr.length - 1 ? arr[i + 1] : i === sectionIndex + 1 ? arr[i - 1] : s)) }))}><ArrowDown size={14} /></Button>
@@ -601,7 +656,6 @@ export function RecipesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-1 max-w-[220px]"><label className="text-xs text-slate-500">Ед. выхода</label><select value={section.outputUnit} onChange={(event) => updateSection(section.id, { outputUnit: toBaseUnit(event.target.value) ?? "g" })} className="h-11 w-full rounded-2xl border border-slate-200/70 px-4 text-sm">{UNIT_OPTIONS.filter((unit) => SECTION_OUTPUT_UNITS.includes(unit.value)).map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
 
                 <div className="space-y-3">
                     {section.items.map((item) => {
@@ -678,7 +732,7 @@ export function RecipesPage() {
         <section className="space-y-3"><h3 className="text-sm font-semibold uppercase text-slate-500">Файл (опционально)</h3><input ref={fileInputRef} type="file" accept="application/pdf" onChange={(event) => void handleFileUpload(event)} className="hidden" /><Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2" size={14} />Загрузить PDF</Button>{formState.fileName ? <p className="text-sm text-slate-600">{formState.fileName}</p> : null}</section>
 
         {formSubmitted && validation.errors.length > 0 ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">{validation.errors.map((error) => <p key={error}>{error}</p>)}</div> : null}
-        <div className="rounded-2xl bg-slate-100/80 p-4 text-sm"><p>Итого себестоимость: {formatRecipePrice(draftRecipeCosts.recipeTotalCost)}</p>{draftRecipeCosts.costPerYieldUnit > 0 ? <p>Себестоимость за единицу: {formatRecipePrice(draftRecipeCosts.costPerYieldUnit)}</p> : null}</div>
+        <div className="rounded-2xl bg-slate-100/80 p-4 text-sm"><p>Итого себестоимость: {formatRecipePrice(draftRecipeCosts.recipeTotalCost)}</p>{draftRecipeCosts.costPerResultUnit > 0 ? <p>Себестоимость за 1 {draftRecipeCosts.resultUnitLabel}: {formatRecipePrice(draftRecipeCosts.costPerResultUnit)}</p> : null}</div>
       </CenterModal>
 
       <ConfirmModal

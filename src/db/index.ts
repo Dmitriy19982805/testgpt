@@ -159,16 +159,10 @@ export class ConfectionerDB extends Dexie {
               if (!name) {
                 return null;
               }
-              const outputUnitRaw = typeof section.outputUnit === "string" ? section.outputUnit : undefined;
-              const outputUnit = toBaseUnit(outputUnitRaw);
-
               return {
                 id,
                 name,
                 notes: typeof section.notes === "string" ? section.notes : "",
-                outputAmount: typeof section.outputAmount === "number" && section.outputAmount > 0 ? section.outputAmount : undefined,
-                outputUnit,
-                usageAmount: typeof section.usageAmount === "number" && section.usageAmount > 0 ? section.usageAmount : undefined,
                 items: items as RecipeSection["items"],
               };
             };
@@ -184,9 +178,6 @@ export class ConfectionerDB extends Dexie {
                       id: crypto.randomUUID(),
                       name: "Основной состав",
                       notes: "",
-                      outputAmount: typeof raw.yieldAmount === "number" && raw.yieldAmount > 0 ? raw.yieldAmount : undefined,
-                      outputUnit: typeof raw.yieldUnit === "string" ? toBaseUnit(raw.yieldUnit) : undefined,
-                      usageAmount: undefined,
                       items: fallbackItems as RecipeSection["items"],
                     },
                   ];
@@ -196,11 +187,62 @@ export class ConfectionerDB extends Dexie {
               name: typeof raw.name === "string" ? raw.name : "",
               category: typeof raw.category === "string" ? raw.category : "",
               sections,
+              result: {
+                type: "weight",
+                value: typeof raw.yieldAmount === "number" && raw.yieldAmount > 0 ? raw.yieldAmount : 1,
+                unit: typeof raw.yieldUnit === "string" && raw.yieldUnit === "kg" ? "kg" : "g",
+              },
               notes: typeof raw.notes === "string" ? raw.notes : "",
               fileName: typeof raw.fileName === "string" ? raw.fileName : "",
               fileUrl: typeof raw.fileUrl === "string" ? raw.fileUrl : "",
               createdAt: typeof raw.createdAt === "string" ? raw.createdAt : now,
               updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : now,
+            });
+          })
+        );
+      });
+
+    this.version(4)
+      .stores({
+        customers: "id, name, createdAt",
+        orders: "id, orderNo, status, createdAt, dueAt, customerId",
+        ingredients: "id, name, category, baseUnit, updatedAt",
+        recipes: "id, name, category, updatedAt",
+        settings: "id",
+      })
+      .upgrade(async (tx) => {
+        const recipes = (await tx.table("recipes").toArray()) as Array<Record<string, unknown>>;
+
+        await Promise.all(
+          recipes.map((raw) => {
+            const rawResult = raw.result && typeof raw.result === "object" ? (raw.result as Record<string, unknown>) : null;
+            const resultType = rawResult?.type === "quantity" ? "quantity" : "weight";
+            const resultUnit =
+              resultType === "quantity"
+                ? "pcs"
+                : rawResult?.unit === "kg"
+                  ? "kg"
+                  : "g";
+            const resultValueRaw = typeof rawResult?.value === "number" ? rawResult.value : typeof raw.yieldAmount === "number" ? raw.yieldAmount : 1;
+            const resultValue = resultValueRaw > 0 ? resultValueRaw : 1;
+            const sections = Array.isArray(raw.sections)
+              ? raw.sections.map((section) => {
+                  if (!section || typeof section !== "object") {
+                    return section;
+                  }
+                  const { outputAmount: _outputAmount, outputUnit: _outputUnit, usageAmount: _usageAmount, ...rest } = section as Record<string, unknown>;
+                  return rest;
+                })
+              : [];
+
+            return tx.table("recipes").put({
+              ...raw,
+              sections,
+              result: {
+                type: resultType,
+                value: resultValue,
+                unit: resultUnit,
+              },
             });
           })
         );

@@ -1,4 +1,13 @@
-import type { BaseUnit, Ingredient, Recipe, RecipeItem, RecipeSection } from "../../db/types";
+import type {
+  BaseUnit,
+  Ingredient,
+  Recipe,
+  RecipeItem,
+  RecipeResult,
+  RecipeResultType,
+  RecipeResultUnit,
+  RecipeSection,
+} from "../../db/types";
 
 export interface ProductTypeOption {
   value: string;
@@ -11,8 +20,35 @@ export const UNIT_OPTIONS: Array<{ label: string; value: BaseUnit }> = [
   { label: "шт", value: "pcs" },
 ];
 
+export const RECIPE_RESULT_TYPE_OPTIONS: Array<{ label: string; value: RecipeResultType }> = [
+  { label: "Вес", value: "weight" },
+  { label: "Количество", value: "quantity" },
+];
+
+export const RECIPE_RESULT_UNIT_OPTIONS: Record<RecipeResultType, Array<{ label: string; value: RecipeResultUnit }>> = {
+  weight: [
+    { label: "г", value: "g" },
+    { label: "кг", value: "kg" },
+  ],
+  quantity: [{ label: "шт", value: "pcs" }],
+};
+
 export function getUnitLabel(unit: BaseUnit): string {
   return UNIT_OPTIONS.find((item) => item.value === unit)?.label ?? unit;
+}
+
+export function getRecipeResultUnitLabel(unit: RecipeResultUnit): string {
+  if (unit === "kg") {
+    return "кг";
+  }
+  if (unit === "pcs") {
+    return "шт";
+  }
+  return "г";
+}
+
+export function formatRecipeResult(result: RecipeResult): string {
+  return `${result.value} ${getRecipeResultUnitLabel(result.unit)}`;
 }
 
 export function getIngredientUnitPrice(ingredient: Ingredient): number {
@@ -39,8 +75,6 @@ function normalizeSection(section: RecipeSection): RecipeSection {
   return {
     ...section,
     items: section.items ?? [],
-    outputAmount: typeof section.outputAmount === "number" && section.outputAmount > 0 ? section.outputAmount : undefined,
-    usageAmount: typeof section.usageAmount === "number" && section.usageAmount > 0 ? section.usageAmount : undefined,
   };
 }
 
@@ -61,19 +95,32 @@ export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ing
   return Number.isFinite(baseCost) ? baseCost : 0;
 }
 
-export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[]): { recipeTotalCost: number; costPerYieldUnit: number } {
+function convertResultToBaseValue(result: RecipeResult): number {
+  if (!Number.isFinite(result.value) || result.value <= 0) {
+    return 0;
+  }
+  if (result.type === "weight") {
+    return result.unit === "kg" ? result.value * 1000 : result.value;
+  }
+  return result.value;
+}
+
+export function getRecipeCosts(
+  recipe: Recipe,
+  ingredients: Ingredient[]
+): { recipeTotalCost: number; costPerResultUnit: number; resultUnitLabel: string } {
   const total = recipe.sections.reduce((sum, section) => {
     const sectionCost = getSectionEffectiveCost(section, ingredients);
     return sum + (Number.isFinite(sectionCost) ? sectionCost : 0);
   }, 0);
   const safeTotal = Number.isFinite(total) ? total : 0;
-  const outputSection = recipe.sections.find((section) => typeof section.outputAmount === "number" && section.outputAmount > 0);
-  const outputAmount = outputSection?.outputAmount ?? 0;
-  const costPerUnit = outputAmount > 0 ? safeTotal / outputAmount : 0;
+  const resultBaseValue = convertResultToBaseValue(recipe.result);
+  const costPerResultUnit = resultBaseValue > 0 ? safeTotal / resultBaseValue : 0;
 
   return {
     recipeTotalCost: safeTotal,
-    costPerYieldUnit: Number.isFinite(costPerUnit) ? costPerUnit : 0,
+    costPerResultUnit: Number.isFinite(costPerResultUnit) ? costPerResultUnit : 0,
+    resultUnitLabel: recipe.result.type === "weight" ? "г" : "шт",
   };
 }
 
