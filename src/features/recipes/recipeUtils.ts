@@ -24,8 +24,7 @@ export function getRecipeItemCost(item: RecipeItem, ingredient?: Ingredient): nu
   }
   const unitPrice = getIngredientUnitPrice(ingredient);
   const safeAmount = Number.isFinite(item.amount) && item.amount > 0 ? item.amount : 0;
-  const lossFactor = 1 + (ingredient.lossPct ?? 0) / 100;
-  const cost = safeAmount * unitPrice * lossFactor;
+  const cost = safeAmount * unitPrice;
   return Number.isFinite(cost) && cost > 0 ? cost : 0;
 }
 
@@ -52,17 +51,7 @@ export function getSectionBaseCost(section: RecipeSection, ingredients: Ingredie
 
 export function getSectionEffectiveCost(section: RecipeSection, ingredients: Ingredient[]): number {
   const baseCost = getSectionBaseCost(section, ingredients);
-  const hasOutput = typeof section.outputAmount === "number" && section.outputAmount > 0;
-  const hasUsage = typeof section.usageAmount === "number" && section.usageAmount > 0;
-
-  if (!hasOutput || !hasUsage) {
-    return baseCost;
-  }
-
-  const ratio = section.usageAmount! / section.outputAmount!;
-  const usageRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(ratio, 1)) : 0;
-  const effectiveCost = baseCost * usageRatio;
-  return Number.isFinite(effectiveCost) ? effectiveCost : 0;
+  return Number.isFinite(baseCost) ? baseCost : 0;
 }
 
 export function getRecipeCosts(recipe: Recipe, ingredients: Ingredient[]): { recipeTotalCost: number; costPerYieldUnit: number } {

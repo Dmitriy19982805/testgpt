@@ -178,19 +178,35 @@ export function RecipesPage() {
     };
   }, [formState, ingredients]);
 
-  const draftRecipeCosts = useMemo(
-    () =>
-      getRecipeCosts(
-        {
-          id: "draft",
-          createdAt: "",
-          updatedAt: "",
-          ...validation.parsed,
-        },
-        ingredients
-      ),
-    [ingredients, validation.parsed]
-  );
+  const sectionCosts = useMemo(() => {
+    return formState.sections.reduce<Record<string, number>>((costs, section) => {
+      const sectionCost = section.items.reduce((sum, item) => {
+        const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
+        const quantity = Number(item.quantity);
+        const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+        const ingredientCost = ingredient ? getIngredientUnitPrice(ingredient) * safeQuantity : 0;
+        return sum + (Number.isFinite(ingredientCost) ? ingredientCost : 0);
+      }, 0);
+      costs[section.id] = Number.isFinite(sectionCost) ? sectionCost : 0;
+      return costs;
+    }, {});
+  }, [formState.sections, ingredients]);
+
+  const draftRecipeCosts = useMemo(() => {
+    const recipeTotalCost = Object.values(sectionCosts).reduce((sum, sectionCost) => sum + sectionCost, 0);
+
+    const outputSection = formState.sections.find((section) => {
+      const outputAmount = Number(section.outputAmount);
+      return Number.isFinite(outputAmount) && outputAmount > 0;
+    });
+    const outputAmount = outputSection ? Number(outputSection.outputAmount) : 0;
+    const costPerYieldUnit = outputAmount > 0 ? recipeTotalCost / outputAmount : 0;
+
+    return {
+      recipeTotalCost: Number.isFinite(recipeTotalCost) ? recipeTotalCost : 0,
+      costPerYieldUnit: Number.isFinite(costPerYieldUnit) ? costPerYieldUnit : 0,
+    };
+  }, [formState.sections, sectionCosts]);
 
   const resetForm = () => {
     setFormState(initialRecipeForm);
@@ -312,8 +328,7 @@ export function RecipesPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between"><h3 className="text-sm font-semibold uppercase text-slate-500">Секции рецепта</h3><Button type="button" variant="outline" onClick={() => setFormState((prev) => ({ ...prev, sections: [...prev.sections, createDraftSection()] }))}><Plus className="mr-2" size={14} />Добавить секцию</Button></div>
           {formState.sections.map((section, sectionIndex) => {
-            const parsedSection = validation.parsed.sections.find((entry) => entry.id === section.id);
-            const sectionCost = parsedSection ? getSectionEffectiveCost(parsedSection, ingredients) : 0;
+            const sectionCost = sectionCosts[section.id] ?? 0;
             return (
               <div key={section.id} className="space-y-3 rounded-2xl border border-slate-200/80 p-4">
                 <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
@@ -332,8 +347,11 @@ export function RecipesPage() {
                 <div className="space-y-3">
                     {section.items.map((item) => {
                       const selectedIngredient = ingredients.find((entry) => entry.id === item.ingredientId);
+                      const quantity = Number(item.quantity);
+                      const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+                      const ingredientCost = selectedIngredient ? getIngredientUnitPrice(selectedIngredient) * safeQuantity : 0;
                       return (
-                        <div key={item.id} className="grid gap-3 md:grid-cols-[1.2fr_0.6fr_100px_auto] md:items-end">
+                        <div key={item.id} className="grid gap-3 md:grid-cols-[1.2fr_0.6fr_100px_140px_auto] md:items-end">
                           <IngredientSelect
                             ingredients={ingredients}
                             selectedIngredientId={item.ingredientId}
@@ -353,6 +371,7 @@ export function RecipesPage() {
                           />
                           <div className="space-y-1"><label className="text-xs text-slate-500">Количество</label><Input type="number" min="0.01" step="0.01" value={item.quantity} onChange={(event) => updateSectionItem(section.id, item.id, { quantity: event.target.value })} /></div>
                           <div className="h-11 rounded-xl border border-slate-200/70 bg-slate-50 px-3 text-sm flex items-center">{selectedIngredient ? getUnitLabel(selectedIngredient.baseUnit) : "—"}</div>
+                          <div className="h-11 rounded-xl border border-slate-200/70 bg-slate-50 px-3 text-sm flex items-center justify-end text-slate-700">{formatCurrency(roundMoney(ingredientCost), settings?.currency ?? "RUB")}</div>
                           <Button type="button" variant="ghost" size="sm" onClick={() => updateSection(section.id, { items: section.items.filter((entry) => entry.id !== item.id) })}><Trash2 size={15} /></Button>
                         </div>
                       );
