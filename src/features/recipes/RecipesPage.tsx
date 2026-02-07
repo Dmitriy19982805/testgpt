@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -227,7 +227,20 @@ export function RecipesPage() {
     setShowFormModal(true);
   };
 
-  const openEdit = (recipe: Recipe) => {
+  const stopActionEvent = (event?: ReactMouseEvent<HTMLElement>) => {
+    if (!event) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const openEdit = (recipeId: string) => {
+    const recipe = recipes.find((entry) => entry.id === recipeId);
+    if (!recipe) {
+      return;
+    }
+
     const nextForm = toForm(recipe);
     setEditingRecipe(recipe);
     setFormState(nextForm);
@@ -242,15 +255,20 @@ export function RecipesPage() {
     setShowFormModal(true);
   };
 
-  const openView = (recipe: Recipe) => {
+  const openView = (recipeId: string) => {
+    const recipe = recipes.find((entry) => entry.id === recipeId);
+    if (!recipe) {
+      return;
+    }
+
     setActiveMenuId(null);
     setMenuAnchor(null);
     setViewingRecipe(recipe);
   };
 
-  const openEditFromView = (recipe: Recipe) => {
+  const openEditFromView = (recipeId: string) => {
     setViewingRecipe(null);
-    openEdit(recipe);
+    openEdit(recipeId);
   };
 
   const addSection = () => {
@@ -340,11 +358,11 @@ export function RecipesPage() {
                 className="space-y-3 rounded-2xl border border-white/50 bg-white p-5 transition hover:border-indigo-200 hover:shadow-sm"
                 role="button"
                 tabIndex={0}
-                onClick={() => openView(recipe)}
+                onClick={() => openView(recipe.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    openView(recipe);
+                    openView(recipe.id);
                   }
                 }}
               >
@@ -359,7 +377,7 @@ export function RecipesPage() {
                     size="sm"
                     className="h-9 w-9 rounded-full p-0"
                     onClick={(event) => {
-                      event.stopPropagation();
+                      stopActionEvent(event);
                       setActiveMenuId(recipe.id);
                       setMenuAnchor(event.currentTarget);
                     }}
@@ -370,8 +388,12 @@ export function RecipesPage() {
                     open={activeMenuId === recipe.id}
                     onOpenChange={(open) => { if (!open) { setActiveMenuId(null); setMenuAnchor(null); } }}
                     anchorEl={activeMenuId === recipe.id ? menuAnchor : null}
-                    onEdit={() => openEdit(recipe)}
-                    onDelete={() => {
+                    onEdit={(event) => {
+                      stopActionEvent(event);
+                      openEdit(recipe.id);
+                    }}
+                    onDelete={(event) => {
+                      stopActionEvent(event);
                       if (isDeleteBlocked(recipe.id)) {
                         setBlockedDeleteRecipe(recipe);
                         return;
@@ -407,7 +429,7 @@ export function RecipesPage() {
         footer={
           viewingRecipe ? (
             <>
-              <Button className="flex-1" onClick={() => openEditFromView(viewingRecipe)}>Редактировать рецепт</Button>
+              <Button className="flex-1" onClick={() => openEditFromView(viewingRecipe.id)}>Редактировать рецепт</Button>
               <Button variant="outline" className="flex-1" onClick={() => setViewingRecipe(null)}>Закрыть</Button>
             </>
           ) : null
@@ -599,11 +621,16 @@ export function RecipesPage() {
         onOpenChange={(open) => { if (!open) { setConfirmDelete(null); } }}
         title="Удалить рецепт?"
         description={confirmDelete ? `Рецепт «${confirmDelete.name}» будет удалён без возможности восстановления.` : ""}
-        onConfirm={async () => {
+        onConfirm={async (event) => {
+          stopActionEvent(event);
           if (!confirmDelete) {
             return;
           }
+
           await deleteRecipe(confirmDelete.id);
+          if (viewingRecipe?.id === confirmDelete.id) {
+            setViewingRecipe(null);
+          }
           setConfirmDelete(null);
           setActiveMenuId(null);
           setMenuAnchor(null);

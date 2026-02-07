@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
@@ -11,7 +11,7 @@ interface ConfirmModalProps {
   description?: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => Promise<void> | void;
+  onConfirm: (event?: ReactMouseEvent<HTMLButtonElement>) => Promise<void> | void;
   loadingText?: string;
 }
 
@@ -146,13 +146,16 @@ export function ConfirmModal({
     onOpenChange(false);
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (isLoading) {
       return;
     }
     setIsLoading(true);
     try {
-      await onConfirm();
+      await onConfirm(event);
       if (mountedRef.current) {
         onOpenChange(false);
       }

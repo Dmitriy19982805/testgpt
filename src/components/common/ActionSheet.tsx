@@ -30,12 +30,12 @@ export function ActionSheet({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-end justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm"
         aria-label="Закрыть"
-        onClick={onClose}
+        onClick={(event) => { event.stopPropagation(); onClose(); }}
       />
       <div className="relative z-[10000] w-full max-w-md px-4 pb-6">
         <div className="glass-card overflow-hidden rounded-[28px]">
@@ -50,7 +50,7 @@ export function ActionSheet({
                     ? "text-rose-500 hover:text-rose-600"
                     : "text-slate-700 dark:text-slate-100"
                 )}
-                onClick={action.onSelect}
+                onClick={(event) => { event.stopPropagation(); action.onSelect(); }}
               >
                 {action.label}
               </button>
@@ -61,7 +61,7 @@ export function ActionSheet({
           <button
             type="button"
             className="glass-card w-full rounded-[28px] px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white/50 dark:text-slate-100 dark:hover:bg-slate-800/50"
-            onClick={onClose}
+            onClick={(event) => { event.stopPropagation(); onClose(); }}
           >
             {cancelLabel}
           </button>

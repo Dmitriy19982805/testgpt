@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ActionSheet } from "./ActionSheet";
 import { cn } from "../ui/utils";
@@ -13,8 +13,8 @@ interface ActionMenuLabels {
 interface ActionMenuProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (event?: ReactMouseEvent<HTMLButtonElement>) => void;
+  onDelete: (event?: ReactMouseEvent<HTMLButtonElement>) => void;
   labels?: ActionMenuLabels;
   anchorEl?: HTMLElement | null;
 }
@@ -208,14 +208,24 @@ export function ActionMenu({
     return null;
   }
 
-  const handleEdit = () => {
-    onOpenChange(false);
-    onEdit();
+  const stopMenuEvent = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    if (!event) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
   };
 
-  const handleDelete = () => {
+  const handleEdit = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    stopMenuEvent(event);
     onOpenChange(false);
-    onDelete();
+    onEdit(event);
+  };
+
+  const handleDelete = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    stopMenuEvent(event);
+    onOpenChange(false);
+    onDelete(event);
   };
 
   if (!isDesktop) {
@@ -252,6 +262,7 @@ export function ActionMenu({
           : "opacity-0 translate-y-2 scale-[0.98]"
       )}
       style={{ top: position.top, left: position.left }}
+      onClick={(event) => event.stopPropagation()}
     >
       <div className="glass-card rounded-2xl border border-white/40 shadow-[0_10px_30px_rgba(15,23,42,0.12)] dark:border-slate-800/70">
         <div className="py-1 text-sm">
