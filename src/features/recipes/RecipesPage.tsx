@@ -432,31 +432,37 @@ export function RecipesPage() {
                         </div>
                       );
                     })}
-                    <Button type="button" variant="outline" onClick={() => updateSection(section.id, { items: [...section.items, createDraftItem()] })}><Plus className="mr-2" size={14} />Добавить ингредиент</Button>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Button type="button" variant="outline" onClick={() => updateSection(section.id, { items: [...section.items, createDraftItem()] })}>
+                        <Plus className="mr-2" size={14} />Добавить ингредиент
+                      </Button>
+                      <div className="flex w-full justify-end gap-2 sm:w-auto">
+                        <Button type="button" variant="outline" onClick={() => toggleSectionDescription(section.id, !visibleDescriptions[section.id])}>
+                          {visibleDescriptions[section.id] ? "Скрыть описание" : <><Plus className="mr-2" size={14} />Добавить описание</>}
+                        </Button>
+                        {visibleDescriptions[section.id] && section.notes.trim() ? (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => updateSection(section.id, { notes: "" })}>
+                            Очистить
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => toggleSectionDescription(section.id, !visibleDescriptions[section.id])}>
-                      {visibleDescriptions[section.id] ? "Скрыть описание" : "+ Добавить описание"}
-                    </Button>
-                    {visibleDescriptions[section.id] && section.notes.trim() ? (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => updateSection(section.id, { notes: "" })}>
-                        Очистить
-                      </Button>
-                    ) : null}
-                  </div>
-                  <div className={`overflow-hidden transition-all duration-200 ${visibleDescriptions[section.id] ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}>
-                    <div className="space-y-1 rounded-2xl border border-slate-200/70 bg-white p-3">
-                      <label className="text-xs text-slate-500">Описание / заметки</label>
-                      <textarea
-                        ref={(node) => {
-                          sectionDescriptionRefs.current[section.id] = node;
-                        }}
-                        value={section.notes}
-                        onChange={(event) => updateSection(section.id, { notes: event.target.value })}
-                        className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm"
-                      />
+                  <div className={`grid transition-all duration-300 ease-out ${visibleDescriptions[section.id] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="space-y-1 rounded-2xl border border-slate-200/70 bg-white p-3">
+                        <label className="text-xs text-slate-500">Описание / заметки</label>
+                        <textarea
+                          ref={(node) => {
+                            sectionDescriptionRefs.current[section.id] = node;
+                          }}
+                          value={section.notes}
+                          onChange={(event) => updateSection(section.id, { notes: event.target.value })}
+                          className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
