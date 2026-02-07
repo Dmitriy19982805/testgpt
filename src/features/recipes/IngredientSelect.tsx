@@ -1,7 +1,7 @@
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Ingredient, Settings } from "../../db/types";
-import { formatCurrency } from "../../utils/currency";
+import { formatUnitCurrency } from "../../utils/currency";
 import { getIngredientUnitPrice, getUnitLabel } from "./recipeUtils";
 
 interface IngredientSelectProps {
@@ -173,7 +173,7 @@ export function IngredientSelect({
                         {ingredient.name}
                         {category ? ` — ${category}` : ""}
                       </p>
-                      <p className="text-xs text-slate-500">Цена: {formatCurrency(getIngredientUnitPrice(ingredient), currency)} / {getUnitLabel(ingredient.baseUnit)}</p>
+                      <p className="text-xs text-slate-500">Цена: {formatUnitCurrency(getIngredientUnitPrice(ingredient), currency)} / {getUnitLabel(ingredient.baseUnit)}</p>
                     </button>
                   );
                 })
