@@ -303,10 +303,10 @@ export function IngredientsPage() {
         }
       />
 
-      <div className="space-y-3">
+      <div className={createFormOpen || showSavedHint ? "space-y-3" : "space-y-0"}>
         <div
-          className={`inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-medium text-emerald-700 transition-all dark:bg-emerald-500/20 dark:text-emerald-200 ${
-            showSavedHint ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+          className={`inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-emerald-100/80 px-3 text-xs font-medium text-emerald-700 transition-all dark:bg-emerald-500/20 dark:text-emerald-200 ${
+            showSavedHint ? "h-6 translate-y-0 py-1 opacity-100" : "pointer-events-none h-0 -translate-y-1 px-0 py-0 opacity-0"
           }`}
           role="status"
           aria-live="polite"
