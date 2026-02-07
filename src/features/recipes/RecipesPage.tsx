@@ -100,6 +100,8 @@ export function RecipesPage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [newSectionIdToFocus, setNewSectionIdToFocus] = useState<string | null>(null);
   const [visibleDescriptions, setVisibleDescriptions] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const sectionDescriptionRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const formatRecipePrice = (value: number) => formatCurrency(value, settings?.currency ?? "RUB", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -338,6 +340,43 @@ export function RecipesPage() {
 
   const isDeleteBlocked = (recipeId: string) => orders.some((order) => order.recipeId === recipeId);
 
+  const categoryOptions = useMemo(() => {
+    const categories = new Set<string>();
+    let hasUncategorized = false;
+
+    recipes.forEach((recipe) => {
+      const normalizedCategory = recipe.category?.trim() ?? "";
+      if (normalizedCategory) {
+        categories.add(normalizedCategory);
+      } else {
+        hasUncategorized = true;
+      }
+    });
+
+    const sortedCategories = Array.from(categories).sort((a, b) => a.localeCompare(b, "ru"));
+    return hasUncategorized ? ["Без категории", ...sortedCategories] : sortedCategories;
+  }, [recipes]);
+
+  const filteredRecipes = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+
+    return recipes.filter((recipe) => {
+      const normalizedCategory = recipe.category?.trim() || "";
+      const displayCategory = normalizedCategory || "Без категории";
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        recipe.name.trim().toLocaleLowerCase().includes(normalizedQuery) ||
+        recipe.sections.some((section) => section.name.toLocaleLowerCase().includes(normalizedQuery)) ||
+        (recipe.notes ?? "").toLocaleLowerCase().includes(normalizedQuery);
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (selectedCategory === "Без категории" ? normalizedCategory.length === 0 : normalizedCategory === selectedCategory);
+
+      return matchesQuery && matchesCategory;
+    });
+  }, [recipes, searchQuery, selectedCategory]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -346,11 +385,37 @@ export function RecipesPage() {
         action={<Button onClick={openCreate}><Plus className="mr-2" size={16} />Добавить рецепт</Button>}
       />
 
+      {recipes.length > 0 ? (
+        <GlassCard className="p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Поиск рецепта…"
+            />
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
+            >
+              <option value="all">Все категории</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </GlassCard>
+      ) : null}
+
       {recipes.length === 0 ? (
         <EmptyState title="Рецептов пока нет" description="Создайте первый секционный рецепт." actionLabel="Добавить рецепт" onAction={openCreate} />
+      ) : filteredRecipes.length === 0 ? (
+        <GlassCard className="p-8 text-center text-sm text-slate-500">Ничего не найдено</GlassCard>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {recipes.map((recipe) => {
+          {filteredRecipes.map((recipe) => {
             const totals = getRecipeCosts(recipe, ingredients);
             return (
               <GlassCard

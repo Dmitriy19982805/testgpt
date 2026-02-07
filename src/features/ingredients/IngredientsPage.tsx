@@ -81,6 +81,8 @@ export function IngredientsPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [showSavedHint, setShowSavedHint] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const validation = useMemo(() => validateIngredientForm(formState), [formState]);
   const computedUnitPrice = useMemo(() => {
@@ -98,6 +100,42 @@ export function IngredientsPage() {
 
     return formatUnitCurrency(unitPrice, settings?.currency ?? "RUB");
   }, [formState.packPrice, formState.packSize, settings?.currency]);
+
+  const categoryOptions = useMemo(() => {
+    const categories = new Set<string>();
+    let hasUncategorized = false;
+
+    ingredients.forEach((ingredient) => {
+      const normalizedCategory = ingredient.category?.trim() ?? "";
+      if (normalizedCategory) {
+        categories.add(normalizedCategory);
+      } else {
+        hasUncategorized = true;
+      }
+    });
+
+    const sortedCategories = Array.from(categories).sort((a, b) => a.localeCompare(b, "ru"));
+    return hasUncategorized ? ["Без категории", ...sortedCategories] : sortedCategories;
+  }, [ingredients]);
+
+  const filteredIngredients = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+
+    return ingredients.filter((ingredient) => {
+      const normalizedCategory = ingredient.category?.trim() || "";
+      const displayCategory = normalizedCategory || "Без категории";
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        ingredient.name.trim().toLocaleLowerCase().includes(normalizedQuery) ||
+        displayCategory.toLocaleLowerCase().includes(normalizedQuery);
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (selectedCategory === "Без категории" ? normalizedCategory.length === 0 : normalizedCategory === selectedCategory);
+
+      return matchesQuery && matchesCategory;
+    });
+  }, [ingredients, searchQuery, selectedCategory]);
 
   const setField = <K extends keyof IngredientFormState>(field: K, value: IngredientFormState[K]) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -298,11 +336,37 @@ export function IngredientsPage() {
         </div>
       </div>
 
+      {ingredients.length > 0 ? (
+        <GlassCard className="p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Поиск ингредиента…"
+            />
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              className="h-11 w-full rounded-2xl border border-slate-200/70 bg-white/80 px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-100"
+            >
+              <option value="all">Все категории</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </GlassCard>
+      ) : null}
+
       {ingredients.length === 0 ? (
         <EmptyState title="Ингредиентов пока нет" description="Добавьте первый ингредиент для расчётов себестоимости." />
+      ) : filteredIngredients.length === 0 ? (
+        <GlassCard className="p-8 text-center text-sm text-slate-500">Ничего не найдено</GlassCard>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {ingredients.map((ingredient) => {
+          {filteredIngredients.map((ingredient) => {
             const unitPrice = getIngredientUnitPrice(ingredient);
             return (
               <GlassCard key={ingredient.id} className="space-y-3 p-5">
