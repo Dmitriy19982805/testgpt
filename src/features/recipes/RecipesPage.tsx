@@ -1,5 +1,5 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, MoreVertical, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { GlassCard } from "../../components/common/GlassCard";
@@ -92,6 +92,7 @@ export function RecipesPage() {
   const [formState, setFormState] = useState<RecipeFormState>(initialRecipeForm);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Recipe | null>(null);
   const [blockedDeleteRecipe, setBlockedDeleteRecipe] = useState<Recipe | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -241,6 +242,17 @@ export function RecipesPage() {
     setShowFormModal(true);
   };
 
+  const openView = (recipe: Recipe) => {
+    setActiveMenuId(null);
+    setMenuAnchor(null);
+    setViewingRecipe(recipe);
+  };
+
+  const openEditFromView = (recipe: Recipe) => {
+    setViewingRecipe(null);
+    openEdit(recipe);
+  };
+
   const addSection = () => {
     const newSection = createDraftSection();
     setFormState((prev) => ({ ...prev, sections: [newSection, ...prev.sections] }));
@@ -323,14 +335,35 @@ export function RecipesPage() {
           {recipes.map((recipe) => {
             const totals = getRecipeCosts(recipe, ingredients);
             return (
-              <GlassCard key={recipe.id} className="space-y-3 rounded-2xl border border-white/50 bg-white p-5">
+              <GlassCard
+                key={recipe.id}
+                className="space-y-3 rounded-2xl border border-white/50 bg-white p-5 transition hover:border-indigo-200 hover:shadow-sm"
+                role="button"
+                tabIndex={0}
+                onClick={() => openView(recipe)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openView(recipe);
+                  }
+                }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-slate-900">{recipe.name}</h3>
                     <p className="text-sm text-slate-500">{recipe.category?.trim() || "Без категории"}</p>
                     <p className="text-sm text-slate-600">Секций: {recipe.sections.length}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full p-0" onClick={(event) => { setActiveMenuId(recipe.id); setMenuAnchor(event.currentTarget); }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-full p-0"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setActiveMenuId(recipe.id);
+                      setMenuAnchor(event.currentTarget);
+                    }}
+                  >
                     <MoreVertical size={16} />
                   </Button>
                   <ActionMenu
@@ -360,6 +393,85 @@ export function RecipesPage() {
           })}
         </div>
       )}
+
+      <CenterModal
+        open={Boolean(viewingRecipe)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingRecipe(null);
+          }
+        }}
+        title={viewingRecipe?.name ?? "Рецепт"}
+        className="w-[95vw] max-w-[920px] rounded-3xl border border-slate-200/70 bg-white px-6 py-6"
+        bodyClassName="mt-5 max-h-[72vh] space-y-5 overflow-y-auto pr-1"
+        footer={
+          viewingRecipe ? (
+            <>
+              <Button className="flex-1" onClick={() => openEditFromView(viewingRecipe)}>Редактировать рецепт</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setViewingRecipe(null)}>Закрыть</Button>
+            </>
+          ) : null
+        }
+        showCloseButton
+      >
+        {viewingRecipe ? (
+          <>
+            <section className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 text-sm text-slate-700">
+              <p>
+                <span className="font-medium text-slate-900">Категория:</span>{" "}
+                {viewingRecipe.category?.trim() || "Без категории"}
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              {viewingRecipe.sections.map((section) => {
+                const sectionCost = getSectionEffectiveCost(section, ingredients);
+                return (
+                  <article key={section.id} className="space-y-3 rounded-2xl border border-slate-200/70 bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">{section.name}</h3>
+                      <p className="text-sm font-medium text-slate-800">{formatRecipePrice(sectionCost)}</p>
+                    </div>
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {section.items.map((item, itemIndex) => {
+                        const ingredient = ingredients.find((entry) => entry.id === item.ingredientId);
+                        return (
+                          <li key={`${section.id}-${item.ingredientId}-${item.amount}-${itemIndex}`} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+                            <span>{ingredient?.name ?? "Ингредиент удалён"}</span>
+                            <span className="whitespace-nowrap text-slate-600">
+                              {item.amount} {getUnitLabel(item.unit)}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </article>
+                );
+              })}
+            </section>
+
+            <section className="rounded-2xl bg-slate-100/80 p-4 text-sm font-medium text-slate-800">
+              Итого себестоимость: {formatRecipePrice(getRecipeCosts(viewingRecipe, ingredients).recipeTotalCost)}
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase text-slate-500">PDF</h3>
+              {viewingRecipe.fileUrl ? (
+                <>
+                  <div className="h-[340px] overflow-hidden rounded-2xl border border-slate-200/70">
+                    <iframe src={viewingRecipe.fileUrl} title={`PDF ${viewingRecipe.name}`} className="h-full w-full" />
+                  </div>
+                  <Button variant="outline" onClick={() => window.open(viewingRecipe.fileUrl, "_blank", "noopener,noreferrer")}>
+                    <ExternalLink className="mr-2" size={14} />Открыть PDF в новой вкладке
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">PDF не прикреплён</p>
+              )}
+            </section>
+          </>
+        ) : null}
+      </CenterModal>
 
       <CenterModal
         open={showFormModal}
