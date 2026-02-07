@@ -16,6 +16,7 @@ import {
   formatProductTypeLabel,
   getProductTypeKey,
   getProductTypesFromRecipes,
+  getRecipeCosts,
   normalizeProductType,
 } from "../recipes/recipeUtils";
 
@@ -78,7 +79,7 @@ export function OrderFormContent({
   layout = "default",
   onClose,
 }: OrderFormContentProps) {
-  const { customers, orders, recipes, addOrder, updateOrder, settings } = useAppStore();
+  const { customers, orders, recipes, ingredients, addOrder, updateOrder, settings } = useAppStore();
   const [step, setStep] = useState(0);
   const [references, setReferences] = useState<
     { id: string; name: string; urlOrData: string }[]
@@ -141,6 +142,7 @@ export function OrderFormContent({
   const dessertType = watch("dessertType");
   const recipeId = watch("recipeId");
   const flavor = watch("flavor");
+  const size = watch("size");
   const total = Number(priceTotal) || 0;
   const paid = Number(deposit) || 0;
   const remaining = Math.max(total - paid, 0);
@@ -364,11 +366,48 @@ export function OrderFormContent({
     }
   }, [dessertType]);
 
+  const parseOrderSizeValue = (raw: string, recipeUnitLabel: string): number => {
+    const normalized = raw.replace(",", ".").toLowerCase();
+    const match = normalized.match(/\d+(?:\.\d+)?/);
+    if (!match) {
+      return 0;
+    }
+    const value = Number(match[0]);
+    if (!Number.isFinite(value) || value <= 0) {
+      return 0;
+    }
+    if (recipeUnitLabel === "г") {
+      return normalized.includes("кг") ? value * 1000 : value;
+    }
+    return value;
+  };
+
   useEffect(() => {
     if (recipeId && selectedRecipe && !flavor) {
       setValue("flavor", selectedRecipe.name, { shouldValidate: false });
     }
   }, [flavor, recipeId, selectedRecipe, setValue]);
+
+  useEffect(() => {
+    if (!selectedRecipe) {
+      return;
+    }
+
+    const recipeCosts = getRecipeCosts(selectedRecipe, ingredients);
+    if (recipeCosts.costPerResultUnit <= 0) {
+      return;
+    }
+
+    const sizeValue = parseOrderSizeValue(size ?? "", recipeCosts.resultUnitLabel);
+    if (sizeValue <= 0) {
+      return;
+    }
+
+    setValue("priceTotal", Number((sizeValue * recipeCosts.costPerResultUnit).toFixed(2)), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }, [ingredients, selectedRecipe, setValue, size]);
 
   useEffect(() => {
     if (dessertType && normalizedSelectedDessertType && dessertType !== normalizedSelectedDessertType) {
@@ -563,6 +602,12 @@ export function OrderFormContent({
                   {isRecipeSelectionDisabled ? (
                     <p className="text-xs text-slate-500">Сначала выберите тип десерта</p>
                   ) : null}
+                  {selectedRecipe ? (() => {
+                    const recipeCosts = getRecipeCosts(selectedRecipe, ingredients);
+                    return recipeCosts.costPerResultUnit > 0 ? (
+                      <p className="text-xs text-slate-500">Себестоимость за 1 {recipeCosts.resultUnitLabel}: {formatCurrency(recipeCosts.costPerResultUnit, settings?.currency)}</p>
+                    ) : null;
+                  })() : null}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-slate-500">Вкус</label>
