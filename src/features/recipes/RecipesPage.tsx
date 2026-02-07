@@ -98,7 +98,9 @@ export function RecipesPage() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [newSectionIdToFocus, setNewSectionIdToFocus] = useState<string | null>(null);
+  const [visibleDescriptions, setVisibleDescriptions] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const sectionDescriptionRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const formatRecipePrice = (value: number) => formatCurrency(value, settings?.currency ?? "RUB", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const updateSection = (sectionId: string, patch: Partial<EditableSection>) => {
@@ -212,19 +214,28 @@ export function RecipesPage() {
     setFormState(initialRecipeForm);
     setEditingRecipe(null);
     setFormSubmitted(false);
+    setVisibleDescriptions({});
   };
 
   const openCreate = () => {
     resetForm();
     const initialSection = createDraftSection();
     setFormState((prev) => ({ ...prev, sections: [initialSection] }));
+    setVisibleDescriptions({ [initialSection.id]: false });
     setNewSectionIdToFocus(initialSection.id);
     setShowFormModal(true);
   };
 
   const openEdit = (recipe: Recipe) => {
+    const nextForm = toForm(recipe);
     setEditingRecipe(recipe);
-    setFormState(toForm(recipe));
+    setFormState(nextForm);
+    setVisibleDescriptions(
+      nextForm.sections.reduce<Record<string, boolean>>((acc, section) => {
+        acc[section.id] = Boolean(section.notes.trim());
+        return acc;
+      }, {})
+    );
     setNewSectionIdToFocus(null);
     setFormSubmitted(false);
     setShowFormModal(true);
@@ -233,8 +244,28 @@ export function RecipesPage() {
   const addSection = () => {
     const newSection = createDraftSection();
     setFormState((prev) => ({ ...prev, sections: [newSection, ...prev.sections] }));
+    setVisibleDescriptions((prev) => ({ ...prev, [newSection.id]: false }));
     setNewSectionIdToFocus(newSection.id);
   };
+
+  const toggleSectionDescription = (sectionId: string, nextState: boolean) => {
+    setVisibleDescriptions((prev) => ({ ...prev, [sectionId]: nextState }));
+    if (nextState) {
+      requestAnimationFrame(() => {
+        sectionDescriptionRefs.current[sectionId]?.focus();
+      });
+    }
+  };
+
+  useEffect(() => {
+    setVisibleDescriptions((prev) => {
+      const next: Record<string, boolean> = {};
+      formState.sections.forEach((section) => {
+        next[section.id] = prev[section.id] ?? Boolean(section.notes.trim());
+      });
+      return next;
+    });
+  }, [formState.sections]);
 
   useEffect(() => {
     if (!showFormModal || !newSectionIdToFocus) {
@@ -404,7 +435,31 @@ export function RecipesPage() {
                     <Button type="button" variant="outline" onClick={() => updateSection(section.id, { items: [...section.items, createDraftItem()] })}><Plus className="mr-2" size={14} />Добавить ингредиент</Button>
                   </div>
 
-                <div className="space-y-1"><label className="text-xs text-slate-500">Описание / заметки</label><textarea value={section.notes} onChange={(event) => updateSection(section.id, { notes: event.target.value })} className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm" /></div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => toggleSectionDescription(section.id, !visibleDescriptions[section.id])}>
+                      {visibleDescriptions[section.id] ? "Скрыть описание" : "+ Добавить описание"}
+                    </Button>
+                    {visibleDescriptions[section.id] && section.notes.trim() ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => updateSection(section.id, { notes: "" })}>
+                        Очистить
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-200 ${visibleDescriptions[section.id] ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}>
+                    <div className="space-y-1 rounded-2xl border border-slate-200/70 bg-white p-3">
+                      <label className="text-xs text-slate-500">Описание / заметки</label>
+                      <textarea
+                        ref={(node) => {
+                          sectionDescriptionRefs.current[section.id] = node;
+                        }}
+                        value={section.notes}
+                        onChange={(event) => updateSection(section.id, { notes: event.target.value })}
+                        className="min-h-20 w-full rounded-2xl border border-slate-200/70 bg-white px-4 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
                 <p className="text-sm text-slate-600">Себестоимость секции: {formatRecipePrice(sectionCost)}</p>
               </div>
             );
